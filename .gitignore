@@ -4,3 +4,6 @@ backend/**/__pycache__/
 backend/.env
 *.pyc
 .idea/
+frontend/node_modules/
+frontend/.next/
+frontend/.env.local
