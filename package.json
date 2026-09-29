@@ -1,31 +1,24 @@
 {
   "name": "tekrovia",
-  "version": "0.1.0",
-  "description": "SkillMove / TekRovia - Learning-to-Placement EdTech Platform",
   "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@9.0.0",
   "scripts": {
-    "dev": "pnpm run --parallel dev",
-    "build": "pnpm run --parallel build",
-    "test": "pnpm run --parallel test",
-    "lint": "pnpm run --parallel lint",
-    "type-check": "pnpm run --parallel type-check",
+    "dev": "pnpm -r --parallel run dev",
+    "build": "pnpm -r --filter './apps/*' run build",
+    "lint": "pnpm -r --parallel run lint",
+    "typecheck": "pnpm -r --parallel run typecheck",
+    "test": "pnpm -r --parallel run test",
     "format": "prettier --write .",
-    "format:check": "prettier --check .",
-    "db:migrate": "cd apps/api && pnpm prisma migrate deploy",
+    "db:generate": "cd apps/api && pnpm prisma generate",
+    "db:migrate": "cd apps/api && pnpm prisma migrate dev",
     "db:seed": "cd apps/api && pnpm prisma db seed",
-    "db:studio": "cd apps/api && pnpm prisma studio",
-    "docker:up": "docker-compose up -d",
-    "docker:down": "docker-compose down",
-    "docker:logs": "docker-compose logs -f",
-    "install": "pnpm install",
-    "clean": "pnpm run --parallel clean && rm -rf node_modules"
+    "docker:up": "docker compose up -d postgres redis",
+    "docker:down": "docker compose down",
+    "check": "pnpm lint && pnpm typecheck && pnpm test"
   },
   "devDependencies": {
-    "prettier": "^3.1.0",
-    "turbo": "^1.10.16"
-  },
-  "engines": {
-    "node": ">=18.0.0",
-    "pnpm": ">=8.0.0"
+    "prettier": "^3.3.1",
+    "turbo": "^2.0.0"
   }
 }
