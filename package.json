@@ -1,0 +1,31 @@
+{
+  "name": "tekrovia",
+  "version": "0.1.0",
+  "description": "SkillMove / TekRovia - Learning-to-Placement EdTech Platform",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm run --parallel dev",
+    "build": "pnpm run --parallel build",
+    "test": "pnpm run --parallel test",
+    "lint": "pnpm run --parallel lint",
+    "type-check": "pnpm run --parallel type-check",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "db:migrate": "cd apps/api && pnpm prisma migrate deploy",
+    "db:seed": "cd apps/api && pnpm prisma db seed",
+    "db:studio": "cd apps/api && pnpm prisma studio",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    "install": "pnpm install",
+    "clean": "pnpm run --parallel clean && rm -rf node_modules"
+  },
+  "devDependencies": {
+    "prettier": "^3.1.0",
+    "turbo": "^1.10.16"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  }
+}
