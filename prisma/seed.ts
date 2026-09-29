@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 async function main() {
-  await prisma.user.upsert({
+  const admin = await prisma.user.upsert({
     where: { email: 'admin@tekrovia.dev' },
     update: {},
     create: {
@@ -33,7 +33,6 @@ async function main() {
       courseInterest: 'Technology Training',
       campaignSource: 'website',
       consentGiven: true,
-      communicationPrefs: 'email',
       user: {
         create: {
           email: 'demo.student@tekrovia.dev',
@@ -62,13 +61,20 @@ async function main() {
       consentGiven: true,
     },
   });
+
+  await prisma.healthCheck.create({
+    data: {
+      service: 'seed',
+      status: 'ok',
+    },
+  });
+
+  console.log('Seed complete:', { admin: admin.email });
 }
 
-main()
-  .catch((e) => {
-    console.error(e);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+main().catch((error) => {
+  console.error('Seed failed:', error);
+  process.exit(1);
+}).finally(async () => {
+  await prisma.$disconnect();
+});
