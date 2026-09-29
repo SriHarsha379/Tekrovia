@@ -1,12 +1,21 @@
-import { Module, Controller, Get } from '@nestjs/common';
+import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
+import { PrismaModule } from './prisma/prisma.module';
+import { AuthModule } from './auth/auth.module';
+import { CandidateModule } from './candidate/candidate.module';
+import { AssessmentModule } from './assessment/assessment.module';
+import { LeadModule } from './lead/lead.module';
+import { HealthController } from './health.controller';
 
-@Controller('health')
-class HealthController {
-  @Get()
-  health() {
-    return { status: 'ok', service: 'api', timestamp: new Date().toISOString() };
-  }
-}
-
-@Module({ controllers: [HealthController] })
+@Module({
+  imports: [
+    ConfigModule.forRoot({ isGlobal: true }),
+    PrismaModule,
+    AuthModule,
+    CandidateModule,
+    AssessmentModule,
+    LeadModule,
+  ],
+  controllers: [HealthController],
+})
 export class AppModule {}

@@ -1,0 +1,252 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  STUDENT
+  TRAINER
+  COUNSELLOR
+  SUPPORT_STAFF
+  PLACEMENT_MANAGER
+  RECRUITER
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum CandidateClassification {
+  BEGINNER
+  STARTER
+  PRO
+}
+
+enum AssessmentType {
+  FREE_ASSESSMENT
+  CAREER_READINESS
+  TECHNICAL
+  MOCK_INTERVIEW
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  INTERESTED
+  PROSPECT
+  PIPELINE
+  PENDING_CLOSURE
+  ENROLLED
+  DROPPED
+}
+
+enum AssessmentStatus {
+  DRAFT
+  IN_PROGRESS
+  COMPLETED
+  REVIEWED
+}
+
+model User {
+  id              String           @id @default(cuid())
+  email           String           @unique
+  phone           String           @unique
+  name            String
+  passwordHash    String?
+  role            UserRole         @default(STUDENT)
+  isVerified      Boolean          @default(false)
+  isActive        Boolean          @default(true)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  candidate       Candidate?
+  sessions        Session[]
+  otpCodes        OtpCode[]
+  leadsOwned      Lead[]           @relation("LeadOwner")
+  assessments    Assessment[]
+  auditLogs       AuditLog[]
+
+  @@map("users")
+}
+
+model Session {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken   String   @unique
+  refreshToken  String   @unique
+  deviceInfo    String?
+  expiresAt     DateTime
+  revokedAt     DateTime?
+  createdAt     DateTime @default(now())
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model OtpCode {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  purpose     String   @default("login")
+  code        String
+  expiresAt   DateTime
+  attempts    Int      @default(0)
+  verifiedAt  DateTime?
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([purpose])
+  @@map("otp_codes")
+}
+
+model Candidate {
+  id                  String               @id @default(cuid())
+  candidateCode       String               @unique
+  userId              String               @unique
+  user                User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fullName            String
+  email               String               @unique
+  phone               String               @unique
+  education           String?
+  graduationYear      Int?
+  experienceYears     Int                  @default(0)
+  currentEmployment   String?
+  skills              String[]
+  previousTraining    String?
+  careerGapMonths     Int                  @default(0)
+  targetRole          String?
+  codingPreference    String?
+  resumeUrl           String?
+  learningAvailability String?
+  preferredSchedule   String?
+  courseInterest      String?
+  campaignSource      String?
+  utmSource           String?
+  utmMedium           String?
+  utmCampaign         String?
+  utmContent          String?
+  utmTerm             String?
+  consentGiven        Boolean              @default(false)
+  communicationPrefs  String?
+  status              String               @default("active")
+  classification      CandidateClassification?
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+
+  registrations       Registration[]
+  assessments        Assessment[]
+  leads              Lead[]
+  auditLogs          AuditLog[]
+
+  @@index([candidateCode])
+  @@index([email])
+  @@index([phone])
+  @@map("candidates")
+}
+
+model Registration {
+  id                    String   @id @default(cuid())
+  candidateId           String
+  candidate             Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  education             String?
+  graduationYear        Int?
+  experienceYears       Int?
+  currentEmployment     String?
+  skills                String[]
+  targetRole            String?
+  codingPreference      String?
+  resumeUrl             String?
+  learningAvailability  String?
+  preferredSchedule     String?
+  courseInterest        String?
+  campaignSource        String?
+  consentGiven          Boolean  @default(false)
+  communicationPrefs    String?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@unique([candidateId])
+  @@map("registrations")
+}
+
+model Assessment {
+  id             String            @id @default(cuid())
+  candidateId    String
+  candidate      Candidate         @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  createdByUserId String?
+  createdByUser  User?             @relation(fields: [createdByUserId], references: [id], onDelete: SetNull)
+  type           AssessmentType
+  title          String
+  description    String?
+  score          Float?
+  maxScore       Float             @default(100)
+  classification String?
+  status         AssessmentStatus  @default(IN_PROGRESS)
+  responses      Json?
+  roadmap        Json?
+  startedAt      DateTime          @default(now())
+  completedAt    DateTime?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
+  @@index([candidateId])
+  @@index([type])
+  @@map("assessments")
+}
+
+model Lead {
+  id             String      @id @default(cuid())
+  leadCode       String      @unique
+  candidateId    String?
+  candidate      Candidate?  @relation(fields: [candidateId], references: [id], onDelete: SetNull)
+  name           String
+  email          String
+  phone          String
+  courseInterest String?
+  source         String?
+  utmSource      String?
+  utmMedium      String?
+  utmCampaign    String?
+  utmContent     String?
+  utmTerm        String?
+  status         LeadStatus  @default(NEW)
+  ownerId        String?
+  owner          User?       @relation("LeadOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+  notes          String?
+  consentGiven   Boolean     @default(false)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  @@index([email])
+  @@index([phone])
+  @@index([status])
+  @@map("leads")
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  candidateId String?
+  action     String
+  details    Json?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  @@index([userId])
+  @@index([candidateId])
+  @@index([action])
+  @@map("audit_logs")
+}
+
+model HealthCheck {
+  id        String   @id @default(cuid())
+  service   String
+  status    String
+  checkedAt DateTime @default(now())
+
+  @@map("health_checks")
+}
