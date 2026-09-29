@@ -1,0 +1,30 @@
+{
+  "globalDependencies": [".env*", "pnpm-workspace.yaml"],
+  "tasks": {
+    "dev": {
+      "cache": false,
+      "interactive": true
+    },
+    "build": {
+      "outputs": ["dist/**", ".next/**"],
+      "cache": true,
+      "dependsOn": ["^build", "type-check"]
+    },
+    "test": {
+      "cache": false,
+      "outputs": ["coverage/**"],
+      "dependsOn": ["build"]
+    },
+    "lint": {
+      "cache": false,
+      "outputs": []
+    },
+    "type-check": {
+      "cache": false,
+      "outputs": []
+    },
+    "clean": {
+      "cache": false
+    }
+  }
+}
