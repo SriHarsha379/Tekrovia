@@ -5,5 +5,4 @@ dist
 .env
 .env.local
 *.log
-D:\
 coverage

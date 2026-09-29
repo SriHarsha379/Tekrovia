@@ -1,4 +1,4 @@
-version: '3.9'
+version: "3.9"
 
 services:
   postgres:
@@ -9,49 +9,28 @@ services:
       POSTGRES_USER: tekrovia_user
       POSTGRES_PASSWORD: tekrovia_password_dev
     ports:
-      - '5432:5432'
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U tekrovia_user -d tekrovia']
+      test: ["CMD-SHELL", "pg_isready -U tekrovia_user -d tekrovia"]
       interval: 10s
       timeout: 5s
       retries: 5
-    networks:
-      - tekrovia
 
   redis:
     image: redis:7-alpine
     container_name: tekrovia-redis
     ports:
-      - '6379:6379'
+      - "6379:6379"
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ['CMD', 'redis-cli', 'ping']
+      test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
-    networks:
-      - tekrovia
-
-  adminer:
-    image: adminer:latest
-    container_name: tekrovia-adminer
-    ports:
-      - '8080:8080'
-    depends_on:
-      - postgres
-    environment:
-      ADMINER_DEFAULT_SERVER: postgres
-    networks:
-      - tekrovia
 
 volumes:
   postgres_data:
   redis_data:
-
-networks:
-  tekrovia:
-    driver: bridge
