@@ -5,6 +5,7 @@ import {
   ForbiddenException,
   Get,
   Param,
+  Patch,
   Post,
   Query,
   Req,
@@ -17,6 +18,13 @@ import {
 } from '@nestjs/swagger';
 import { SessionAuthGuard } from '../auth/guards/session-auth.guard';
 import { CreateCourseDto, validateCreateCourse } from './dto/create-course.dto';
+import {
+  AdminCreateCourseDto,
+  AdminUpdateCourseDto,
+  validateAdminCreateCourse,
+  validateAdminUpdateCourse,
+} from './dto/admin-course.dto';
+
 import { CourseService } from './course.service';
 
 interface AuthenticatedRequest {
@@ -37,6 +45,68 @@ export class CourseController {
     if (!['ADMIN', 'SUPER_ADMIN'].includes(request.user.role)) {
       throw new ForbiddenException('Administrator access required.');
     }
+  }
+
+  @Get('admin')
+  @ApiOperation({ summary: 'List all courses for administrators' })
+  adminFindAll(@Req() request: AuthenticatedRequest) {
+    this.assertAdmin(request);
+    return this.courseService.adminFindAll();
+  }
+
+  @Post('admin')
+  @ApiOperation({ summary: 'Create a draft course (admin only)' })
+  adminCreate(
+    @Req() request: AuthenticatedRequest,
+    @Body() dto: AdminCreateCourseDto,
+  ) {
+    this.assertAdmin(request);
+    try {
+      validateAdminCreateCourse(dto);
+    } catch (error) {
+      throw new BadRequestException(
+        error instanceof Error ? error.message : 'Invalid course data.',
+      );
+    }
+    return this.courseService.adminCreate(dto, dto.status ?? 'DRAFT');
+  }
+
+  @Patch('admin/:id')
+  @ApiOperation({ summary: 'Update a course (admin only)' })
+  adminUpdate(
+    @Req() request: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() dto: AdminUpdateCourseDto,
+  ) {
+    this.assertAdmin(request);
+    try {
+      validateAdminUpdateCourse(dto);
+    } catch (error) {
+      throw new BadRequestException(
+        error instanceof Error ? error.message : 'Invalid course update.',
+      );
+    }
+    return this.courseService.adminUpdate(id, dto);
+  }
+
+  @Patch('admin/:id/publish')
+  @ApiOperation({ summary: 'Publish a course (admin only)' })
+  adminPublish(
+    @Req() request: AuthenticatedRequest,
+    @Param('id') id: string,
+  ) {
+    this.assertAdmin(request);
+    return this.courseService.adminPublish(id);
+  }
+
+  @Patch('admin/:id/archive')
+  @ApiOperation({ summary: 'Archive a course (admin only)' })
+  adminArchive(
+    @Req() request: AuthenticatedRequest,
+    @Param('id') id: string,
+  ) {
+    this.assertAdmin(request);
+    return this.courseService.adminArchive(id);
   }
 
   @Get()

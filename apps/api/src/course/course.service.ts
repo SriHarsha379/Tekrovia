@@ -122,6 +122,201 @@ export class CourseService {
     return this.toCourseResponse(course);
   }
 
+      private readonly adminCourseInclude = {
+    modules: {
+      orderBy: { sortOrder: 'asc' as const },
+      include: {
+        lessons: {
+          orderBy: { sortOrder: 'asc' as const },
+        },
+      },
+    },
+  };
+
+  async adminFindAll() {
+    const courses = await this.prisma.course.findMany({
+      include: {
+        ...this.adminCourseInclude,
+        _count: { select: { enrollments: true } },
+      },
+      orderBy: { updatedAt: 'desc' },
+    });
+
+    return courses.map((course) => ({
+      ...this.toCourseResponse(course),
+      status: course.status,
+      enrollmentCount: course._count.enrollments,
+      createdAt: course.createdAt,
+      updatedAt: course.updatedAt,
+    }));
+  }
+
+  async adminCreate(
+    dto: CreateCourseDto,
+    status: 'DRAFT' | 'PUBLISHED' = 'DRAFT',
+  ) {
+    const course = await this.prisma.course.create({
+      data: {
+        title: dto.title.trim(),
+        category: dto.category?.trim() || 'General',
+        description: dto.description.trim(),
+        duration: dto.duration.trim(),
+        level: dto.level,
+        price: dto.price ?? 0,
+        learningOutcomes: dto.learningOutcomes ?? [],
+        status,
+        modules: {
+          create: (dto.curriculum ?? []).map((module, moduleIndex) => ({
+            title: module.module.trim(),
+            sortOrder: moduleIndex,
+            lessons: {
+              create: module.topics.map((topic, topicIndex) => ({
+                title: topic.trim(),
+                sortOrder: topicIndex,
+                isPublished: status === 'PUBLISHED',
+              })),
+            },
+          })),
+        },
+      },
+      include: this.adminCourseInclude,
+    });
+
+    return {
+      ...this.toCourseResponse(course),
+      status: course.status,
+      enrollmentCount: 0,
+    };
+  }
+
+  async adminUpdate(id: string, dto: Partial<CreateCourseDto>) {
+    const existing = await this.prisma.course.findUnique({
+      where: { id },
+      include: { _count: { select: { enrollments: true } } },
+    });
+
+    if (!existing) {
+      throw new NotFoundException('Course not found.');
+    }
+
+    if (dto.curriculum !== undefined && existing._count.enrollments > 0) {
+      throw new BadRequestException(
+        'Curriculum cannot be replaced after learners have enrolled.',
+      );
+    }
+
+    const course = await this.prisma.course.update({
+      where: { id },
+      data: {
+        ...(dto.title !== undefined && { title: dto.title.trim() }),
+        ...(dto.category !== undefined && { category: dto.category.trim() }),
+        ...(dto.description !== undefined && {
+          description: dto.description.trim(),
+        }),
+        ...(dto.duration !== undefined && { duration: dto.duration.trim() }),
+        ...(dto.level !== undefined && { level: dto.level }),
+        ...(dto.price !== undefined && { price: dto.price }),
+        ...(dto.learningOutcomes !== undefined && {
+          learningOutcomes: dto.learningOutcomes,
+        }),
+        ...(dto.curriculum !== undefined && {
+          modules: {
+            deleteMany: {},
+            create: dto.curriculum.map((module, moduleIndex) => ({
+              title: module.module.trim(),
+              sortOrder: moduleIndex,
+              lessons: {
+                create: module.topics.map((topic, topicIndex) => ({
+                  title: topic.trim(),
+                  sortOrder: topicIndex,
+                  isPublished: existing.status === 'PUBLISHED',
+                })),
+              },
+            })),
+          },
+        }),
+      },
+      include: this.adminCourseInclude,
+    });
+
+    return {
+      ...this.toCourseResponse(course),
+      status: course.status,
+      enrollmentCount: existing._count.enrollments,
+    };
+  }
+
+  async adminPublish(id: string) {
+    const existing = await this.prisma.course.findUnique({
+      where: { id },
+      include: {
+        modules: {
+          include: { lessons: true },
+        },
+      },
+    });
+
+    if (!existing) {
+      throw new NotFoundException('Course not found.');
+    }
+    if (existing.status === 'ARCHIVED') {
+      throw new BadRequestException(
+        'Archived courses cannot be published.',
+      );
+    }
+    if (
+      existing.modules.length === 0 ||
+      existing.modules.some((module) => module.lessons.length === 0)
+    ) {
+      throw new BadRequestException(
+        'Add at least one module and one lesson per module before publishing.',
+      );
+    }
+
+    await this.prisma.$transaction([
+      this.prisma.course.update({
+        where: { id },
+        data: { status: 'PUBLISHED' },
+      }),
+      this.prisma.lesson.updateMany({
+        where: { module: { courseId: id } },
+        data: { isPublished: true },
+      }),
+    ]);
+
+    const course = await this.prisma.course.findUniqueOrThrow({
+      where: { id },
+      include: this.adminCourseInclude,
+    });
+
+    return {
+      ...this.toCourseResponse(course),
+      status: course.status,
+    };
+  }
+
+  async adminArchive(id: string) {
+    const existing = await this.prisma.course.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+
+    if (!existing) {
+      throw new NotFoundException('Course not found.');
+    }
+
+    const course = await this.prisma.course.update({
+      where: { id },
+      data: { status: 'ARCHIVED' },
+    });
+
+    return {
+      id: course.id,
+      title: course.title,
+      status: course.status,
+    };
+  }
+
   async enroll(userId: string, courseId: string) {
     const course = await this.prisma.course.findFirst({
       where: { id: courseId, status: 'PUBLISHED' },
