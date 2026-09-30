@@ -37,6 +37,9 @@ export default function HomePage() {
             <a href="#journey" className="transition hover:text-white">
               How it works
             </a>
+            <a href="#pricing" className="transition hover:text-white">
+              Pricing
+            </a>
           </div>
 
           <div className="flex items-center gap-3">
@@ -127,6 +130,112 @@ export default function HomePage() {
               </p>
             </article>
           ))}
+        </div>
+      </section>
+
+      <section id="pricing" className="border-y border-white/10 bg-slate-900/40 px-6 py-20">
+        <div className="mx-auto max-w-7xl">
+          <div className="mx-auto mb-12 max-w-3xl text-center">
+            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-indigo-400">
+              Programs and pricing
+            </p>
+            <h2 className="mt-4 text-3xl font-bold sm:text-4xl">
+              Choose the support that fits your goals
+            </h2>
+            <p className="mt-4 leading-7 text-slate-400">
+              Start with a focused program or explore the complete learning-to-placement pathway.
+              Review each program&apos;s deliverables before enrolling.
+            </p>
+          </div>
+
+          <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
+            {[
+              {
+                name: "Technology Training",
+                price: "₹9,999",
+                description: "Build practical technical skills through guided learning.",
+                items: ["Structured training modules", "Guided hands-on labs", "Assignments and practice", "Two guided projects"],
+              },
+              {
+                name: "Interview Preparation",
+                price: "₹9,999",
+                description: "Prepare for technical and HR interviews with expert support.",
+                items: ["Interview preparation curriculum", "AI practice", "Three expert mock interviews", "Resume preparation"],
+              },
+              {
+                name: "Placement Support",
+                price: "₹9,999",
+                description: "Access structured support throughout your job search.",
+                items: ["Job matching", "Verified job submissions", "Interview coordination", "Feedback tracking"],
+              },
+              {
+                name: "Corporate Soft Skills",
+                price: "₹5,000",
+                description: "Build communication and workplace skills for professional settings.",
+                items: ["Spoken and workplace communication", "HR rounds and group discussions", "Business email and presentations", "Client communication"],
+              },
+            ].map((program) => (
+              <article
+                key={program.name}
+                className="flex flex-col rounded-2xl border border-white/10 bg-slate-950/70 p-6 transition hover:-translate-y-1 hover:border-indigo-400/40"
+              >
+                <div>
+                  <h3 className="text-lg font-semibold">{program.name}</h3>
+                  <p className="mt-3 text-3xl font-bold tracking-tight">{program.price}</p>
+                  <p className="mt-3 min-h-[3.5rem] text-sm leading-6 text-slate-400">
+                    {program.description}
+                  </p>
+                  <div className="my-6 h-px bg-white/10" />
+                  <ul className="space-y-3 text-sm text-slate-300">
+                    {program.items.map((item) => (
+                      <li key={item} className="flex gap-2">
+                        <span aria-hidden="true" className="text-indigo-300">✓</span>
+                        <span>{item}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <Link
+                  href="/register"
+                  className="mt-8 inline-flex items-center justify-center rounded-xl border border-indigo-400/40 px-4 py-3 text-sm font-semibold text-indigo-200 transition hover:bg-indigo-500 hover:text-white"
+                >
+                  Get started
+                </Link>
+              </article>
+            ))}
+          </div>
+
+          <div className="mt-8 rounded-2xl border border-indigo-400/30 bg-indigo-500/10 p-6 sm:flex sm:items-center sm:justify-between sm:gap-8">
+            <div>
+              <div className="flex flex-wrap items-center gap-3">
+                <h3 className="text-xl font-semibold">Complete Package</h3>
+                <span className="rounded-full border border-indigo-300/30 bg-indigo-300/10 px-3 py-1 text-xs font-medium text-indigo-200">
+                  Suggested bundle
+                </span>
+              </div>
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">
+                All listed services in one pathway: technology training, interview preparation,
+                placement support, and corporate soft skills.
+              </p>
+              <p className="mt-2 text-xs text-slate-400">
+                Suggested introductory price; subject to commercial validation.
+              </p>
+            </div>
+            <div className="mt-5 flex shrink-0 flex-col items-start gap-3 sm:mt-0 sm:items-end">
+              <p className="text-3xl font-bold">₹29,999</p>
+              <Link
+                href="/register"
+                className="inline-flex items-center justify-center rounded-xl bg-indigo-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-indigo-400"
+              >
+                Explore package
+              </Link>
+            </div>
+          </div>
+
+          <p className="mt-6 text-center text-xs leading-5 text-slate-500">
+            Placement support provides structured assistance and does not guarantee employment.
+            Final package details, terms, and pricing should be confirmed before purchase.
+          </p>
         </div>
       </section>
 
