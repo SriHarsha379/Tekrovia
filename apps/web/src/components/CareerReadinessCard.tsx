@@ -66,8 +66,10 @@ function getRoadmapItems(roadmap: unknown): unknown[] {
 
 export default function CareerReadinessCard({
   assessmentCount,
+  onCompleted,
 }: {
   assessmentCount: number;
+  onCompleted?: () => void | Promise<void>;
 }) {
   const [result, setResult] = useState<AssessmentResult | null>(null);
   const [busy, setBusy] = useState(false);
@@ -84,6 +86,7 @@ export default function CareerReadinessCard({
       const assessment = await api.createCareerReadinessAssessment();
       setResult(assessment as AssessmentResult);
       setNotice("Your career-readiness assessment has been generated.");
+      await onCompleted?.();
     } catch (err) {
       if (axios.isAxiosError(err)) {
         const message = err.response?.data?.message;
@@ -254,8 +257,7 @@ export default function CareerReadinessCard({
       <p className="mt-5 text-xs text-slate-500">
         {assessmentCount} assessment record
         {assessmentCount === 1 ? "" : "s"} currently shown in your dashboard
-        history. Refresh the dashboard to update the history after generating
-        a new assessment.
+        history. It updates automatically after a new assessment.
       </p>
     </section>
   );

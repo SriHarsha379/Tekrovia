@@ -128,6 +128,19 @@ export default function DashboardPage() {
     }
   }, []);
 
+  const refreshCandidate = useCallback(async () => {
+    if (!user) return;
+
+    try {
+      const profile = (await api.candidates.getForUser(
+        user.id
+      )) as Candidate;
+      setCandidate(profile);
+    } catch {
+      setError("Assessment completed, but dashboard history couldn't refresh. Please reload the page.");
+    }
+  }, [user]);
+
   useEffect(() => {
     const token = sessionStorage.getItem("tekrovia_access_token");
     const storedUser = sessionStorage.getItem("tekrovia_user");
@@ -499,9 +512,10 @@ export default function DashboardPage() {
 
             <CareerReadinessCard
               assessmentCount={candidate.assessments?.length ?? 0}
+              onCompleted={refreshCandidate}
             />
 
-            <InteractiveAssessmentCard />
+            <InteractiveAssessmentCard onCompleted={refreshCandidate} />
 
             <div className="mt-8 grid gap-6 lg:grid-cols-[1fr_1.4fr]">
               <article className="rounded-2xl border border-white/10 bg-white/[0.04] p-6">

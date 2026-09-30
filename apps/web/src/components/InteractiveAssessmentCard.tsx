@@ -69,7 +69,11 @@ function getErrorMessage(error: unknown): string {
   return "Something went wrong. Please try again.";
 }
 
-export default function InteractiveAssessmentCard() {
+export default function InteractiveAssessmentCard({
+  onCompleted,
+}: {
+  onCompleted?: () => void | Promise<void>;
+}) {
   const [assessment, setAssessment] = useState<AssessmentStart | null>(null);
   const [answers, setAnswers] = useState<Record<string, number>>({});
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -150,6 +154,7 @@ export default function InteractiveAssessmentCard() {
       );
       setResult(data);
       setAssessment(null);
+      await onCompleted?.();
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {

@@ -34,6 +34,7 @@ export default function LearningHub() {
   const [progress, setProgress] = useState<LearningProgress[]>([]);
   const [category, setCategory] = useState("all");
   const [level, setLevel] = useState("all");
+  const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Course | null>(null);
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState("");
@@ -70,6 +71,22 @@ export default function LearningHub() {
     () => ["all", ...Array.from(new Set(courses.map((course) => course.category).filter(Boolean)))],
     [courses]
   );
+
+  const filteredCourses = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    if (!term) return courses;
+
+    return courses.filter((course) =>
+      [
+        course.title,
+        course.description,
+        course.category,
+        course.level,
+      ]
+        .filter(Boolean)
+        .some((value) => value!.toLowerCase().includes(term))
+    );
+  }, [courses, search]);
 
   const enrolledCourseIds = useMemo(
     () => new Set(progress.map((item) => item.courseId)),
@@ -159,7 +176,19 @@ export default function LearningHub() {
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-3">
+      <div className="space-y-3">
+        <label htmlFor="course-search" className="block text-sm text-slate-300">
+          Search courses
+        </label>
+        <input
+          id="course-search"
+          type="search"
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder="Search by course, skill, or category..."
+          className="w-full rounded-xl border border-white/10 bg-slate-900 px-4 py-3 text-sm text-white placeholder:text-slate-500 focus:border-indigo-400 focus:outline-none"
+        />
+        <div className="flex flex-wrap gap-3">
         <label className="text-sm text-slate-300">
           Category
           <select
@@ -188,21 +217,27 @@ export default function LearningHub() {
             ))}
           </select>
         </label>
+        </div>
       </div>
 
       <div>
-        <h3 className="mb-4 text-lg font-semibold text-white">Explore courses</h3>
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+          <h3 className="text-lg font-semibold text-white">Explore courses</h3>
+          <span className="text-xs text-slate-400">
+            {filteredCourses.length} {filteredCourses.length === 1 ? "course" : "courses"}
+          </span>
+        </div>
         {loading ? (
           <div className="rounded-2xl border border-white/10 p-6 text-sm text-slate-400">
             Loading courses…
           </div>
-        ) : courses.length === 0 ? (
+        ) : filteredCourses.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-white/10 p-6 text-sm text-slate-400">
-            No published courses match these filters yet.
+            No courses match your search and filters. Try another keyword or reset a filter.
           </div>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {courses.map((course) => (
+            {filteredCourses.map((course) => (
               <article
                 key={course.id}
                 className="flex flex-col rounded-2xl border border-white/10 bg-white/[0.04] p-5"
