@@ -40,6 +40,9 @@ export default function HomePage() {
             <a href="#pricing" className="transition hover:text-white">
               Pricing
             </a>
+            <a href="#faq" className="transition hover:text-white">
+              FAQ
+            </a>
           </div>
 
           <div className="flex items-center gap-3">
@@ -236,6 +239,102 @@ export default function HomePage() {
             Placement support provides structured assistance and does not guarantee employment.
             Final package details, terms, and pricing should be confirmed before purchase.
           </p>
+        </div>
+      </section>
+
+      <section id="faq" className="mx-auto max-w-4xl px-6 py-20">
+        <div className="mb-10 text-center">
+          <p className="text-sm font-semibold uppercase tracking-[0.2em] text-indigo-400">
+            Frequently asked questions
+          </p>
+          <h2 className="mt-4 text-3xl font-bold sm:text-4xl">
+            Got questions? Start here.
+          </h2>
+          <p className="mx-auto mt-4 max-w-2xl text-slate-400">
+            Find out more about the learning journey, assessments, programs, and placement support.
+          </p>
+        </div>
+
+        <div className="space-y-4">
+          {[
+            {
+              question: "What is the TekRovia learning-to-placement journey?",
+              answer:
+                "It is a structured pathway that brings together learning, practice, interview preparation, and placement support. Your journey can begin with registration and an assessment to help identify a suitable starting level.",
+            },
+            {
+              question: "Which programs are available?",
+              answer:
+                "The proposed programs include Technology Training, Interview Preparation, Placement Support, and Corporate Soft Skills. Program content, schedules, and availability should be confirmed with the TekRovia team before enrollment.",
+            },
+            {
+              question: "Can I assess my skills before choosing a program?",
+              answer:
+                "The platform includes an assessment experience intended to help you understand your current starting point and receive a suggested learning route. The result is a learning guide, not a measure of employability or a guarantee of placement.",
+            },
+            {
+              question: "Is there a free trial or introductory session?",
+              answer:
+                "The proposed offering includes a free assessment, a three-session trial, and a free 10-minute AI mock interview. Please confirm current availability and scheduling with the TekRovia team.",
+            },
+            {
+              question: "How much do the programs cost?",
+              answer:
+                "The listed indicative prices are ₹9,999 for Technology Training, ₹9,999 for Interview Preparation, ₹9,999 for Placement Support, and ₹5,000 for Corporate Soft Skills. The suggested ₹29,999 Complete Package is subject to commercial validation. Confirm final pricing and terms before purchasing.",
+            },
+            {
+              question: "Does placement support guarantee a job?",
+              answer:
+                "No. Placement support is intended to provide structured assistance such as job matching, application support, interview coordination, and feedback tracking. Employment depends on factors including your preparation, role requirements, employer decisions, and available opportunities. A job offer is not guaranteed.",
+            },
+            {
+              question: "What happens after I enroll?",
+              answer:
+                "The planned onboarding journey includes confirming your enrollment, setting up your learner profile and course access, sharing orientation information, and identifying a support contact. Specific access steps and schedules will be communicated as the program is made available.",
+            },
+            {
+              question: "How can I get help or ask about a program?",
+              answer:
+                "Use the registration link to begin your journey. For program availability, schedules, final pricing, or enrollment questions, contact the TekRovia team through the official support channel.",
+            },
+          ].map((item) => (
+            <details
+              key={item.question}
+              className="group rounded-2xl border border-white/10 bg-white/[0.03] p-5 open:border-indigo-400/40 open:bg-indigo-500/[0.04] sm:p-6"
+            >
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-left font-semibold text-slate-100 marker:content-none">
+                <span>{item.question}</span>
+                <span
+                  aria-hidden="true"
+                  className="shrink-0 text-xl text-indigo-300 transition-transform group-open:rotate-45"
+                >
+                  +
+                </span>
+              </summary>
+              <p className="mt-4 pr-6 text-sm leading-7 text-slate-400">
+                {item.answer}
+              </p>
+            </details>
+          ))}
+        </div>
+
+        <div className="mt-10 rounded-2xl border border-amber-400/20 bg-amber-400/[0.05] p-5 text-sm leading-7 text-slate-300 sm:p-6">
+          <h3 className="font-semibold text-amber-200">Placement support disclaimer</h3>
+          <p className="mt-2">
+            TekRovia provides learning, interview preparation, and placement assistance.
+            Participation does not guarantee an interview, job offer, salary, or employment
+            outcome. Program features, availability, pricing, and terms should be confirmed
+            before enrollment.
+          </p>
+        </div>
+
+        <div className="mt-8 text-center">
+          <Link
+            href="/register"
+            className="inline-flex items-center justify-center rounded-xl bg-indigo-500 px-6 py-3 font-semibold text-white transition hover:bg-indigo-400"
+          >
+            Get started →
+          </Link>
         </div>
       </section>
 
