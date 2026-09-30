@@ -5,6 +5,7 @@ import { AuthModule } from './auth/auth.module';
 import { CandidateModule } from './candidate/candidate.module';
 import { AssessmentModule } from './assessment/assessment.module';
 import { LeadModule } from './lead/lead.module';
+import { CourseModule } from './course/course.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -15,6 +16,7 @@ import { HealthController } from './health.controller';
     CandidateModule,
     AssessmentModule,
     LeadModule,
+    CourseModule,
   ],
   controllers: [HealthController],
 })
