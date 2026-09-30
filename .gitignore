@@ -6,3 +6,22 @@ dist
 .env.local
 *.log
 coverage
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+
+# macOS and IDE files
+.DS_Store
+.idea/
+
+# Build output and caches
+.next/
+node_modules/
+*.tsbuildinfo
+__pycache__/
+*.py[cod]
+
+# Local project archives
+*.zip

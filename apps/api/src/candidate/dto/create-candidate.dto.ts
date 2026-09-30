@@ -5,15 +5,15 @@ export class CreateCandidateDto {
   @ApiProperty()
   @IsString()
   @MinLength(2)
-  fullName: string;
+  fullName!: string;
 
   @ApiProperty()
   @IsEmail()
-  email: string;
+  email!: string;
 
   @ApiProperty()
   @IsString()
-  phone: string;
+  phone!: string;
 
   @ApiProperty({ required: false })
   @IsOptional()

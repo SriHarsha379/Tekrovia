@@ -1,13 +1,29 @@
 import axios from 'axios';
 import { z } from 'zod';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },
+});
+
+// Attach the current session token to API requests in the browser.
+apiClient.interceptors.request.use((config) => {
+  if (typeof window !== 'undefined') {
+    const token = window.sessionStorage.getItem(
+      'tekrovia_access_token'
+    );
+
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+  }
+
+  return config;
 });
 
 // Response schemas
@@ -57,6 +73,7 @@ export const assessmentFormSchema = z.object({
 export const courseSchema = z.object({
   id: z.string(),
   title: z.string(),
+  category: z.string().optional(),
   description: z.string(),
   duration: z.string(),
   level: z.enum(['beginner', 'intermediate', 'advanced']),
@@ -72,14 +89,212 @@ export const courseSchema = z.object({
 
 // API methods
 export const api = {
+  // Authentication
+  auth: {
+    register: async (data: {
+      name: string;
+      email: string;
+      phone: string;
+      password?: string;
+    }) => {
+      const response = await apiClient.post('/auth/register', data);
+      return response.data as {
+        id: string;
+        email: string;
+        role: string;
+        requiresOtp: boolean;
+      };
+    },
+
+    login: async (data: {
+      email: string;
+      password?: string;
+    }) => {
+      const response = await apiClient.post('/auth/login', data);
+      return response.data as {
+        userId: string;
+        otp: string;
+        expiresAt: string;
+        message: string;
+      };
+    },
+
+    verifyOtp: async (data: {
+      email: string;
+      otp: string;
+    }) => {
+      const response = await apiClient.post('/auth/verify-otp', data);
+      return response.data as {
+        accessToken: string;
+        refreshToken: string;
+        user: {
+          id: string;
+          email: string;
+          name: string;
+          role: string;
+        };
+      };
+    },
+  },
+
+  // Candidate profile and onboarding
+  candidates: {
+    getForUser: async (userId: string) => {
+      const response = await apiClient.get(`/candidates/user/${encodeURIComponent(userId)}`);
+      return response.data as {
+        id: string;
+        candidateCode: string;
+        userId: string;
+        fullName: string;
+        email: string;
+        phone: string;
+        education?: string | null;
+        graduationYear?: number | null;
+        experienceYears: number;
+        skills: string[];
+        targetRole?: string | null;
+        courseInterest?: string | null;
+        assessments: Array<{
+          id: string;
+          type: string;
+          title: string;
+          description?: string | null;
+          score?: number | null;
+          maxScore: number;
+          classification?: string | null;
+          status: string;
+          startedAt: string;
+          completedAt?: string | null;
+          createdAt: string;
+          updatedAt: string;
+        }>;
+      };
+    },
+    createForUser: async (
+      userId: string,
+      data: {
+        fullName: string;
+        email: string;
+        phone: string;
+        education?: string;
+        graduationYear?: number;
+        experienceYears?: number;
+        skills?: string[];
+        targetRole?: string;
+        courseInterest?: string;
+        codingPreference?: string;
+        learningAvailability?: string;
+        preferredSchedule?: string;
+        consentGiven?: boolean;
+      }
+    ) => {
+      const response = await apiClient.post(
+        `/candidates/user/${encodeURIComponent(userId)}`,
+        data
+      );
+      return response.data;
+    },
+  },
+
   // Products
   getProducts: async () => {
     const response = await apiClient.get('/products');
     return z.array(productSchema).parse(response.data);
   },
 
+  // Interactive technical assessment: questions are supplied by the API,
+  // and the server calculates the final score.
+  startInteractiveAssessment: async () => {
+    const response = await apiClient.post('/assessments/me/interactive');
+    return response.data as {
+      assessment: {
+        id: string;
+        candidateId: string;
+        status: string;
+        startedAt: string;
+      };
+      totalQuestions: number;
+      questions: Array<{
+        id: string;
+        category: string;
+        prompt: string;
+        options: string[];
+      }>;
+    };
+  },
+
+  submitInteractiveAssessment: async (
+    assessmentId: string,
+    answers: Array<{ questionId: string; answerIndex: number }>
+  ) => {
+    const response = await apiClient.post(
+      `/assessments/${assessmentId}/interactive-submit`,
+      { answers }
+    );
+    return response.data as {
+      id: string;
+      candidateId: string;
+      title: string;
+      score: number | null;
+      maxScore: number;
+      classification: string | null;
+      status: string;
+      responses: {
+        correctCount?: number;
+        totalQuestions?: number;
+        categoryResults?: Array<{
+          category: string;
+          correct: number;
+          total: number;
+          percentage: number;
+        }>;
+        strengths?: string[];
+        improvementAreas?: Array<{
+          category: string;
+          correct: number;
+          total: number;
+          percentage: number;
+        }>;
+        answers?: Array<{
+          questionId: string;
+          category: string;
+          selectedIndex: number;
+          correct: boolean;
+          explanation: string;
+        }>;
+      };
+      roadmap: {
+        recommendations?: string[];
+      } | null;
+      completedAt: string | null;
+      createdAt: string;
+    };
+  },
+
+  // Career-readiness assessment for the authenticated student's own profile.
+  createCareerReadinessAssessment: async () => {
+    const response = await apiClient.post(
+      '/assessments/me/career-readiness'
+    );
+    return response.data as {
+      id: string;
+      candidateId: string;
+      type?: string;
+      title?: string;
+      score?: number | null;
+      maxScore?: number;
+      classification?: string | null;
+      status?: string;
+      responses?: unknown;
+      roadmap?: unknown;
+      createdAt?: string;
+    };
+  },
+
   // Assessment
-  createAssessment: async (data: z.infer<typeof assessmentFormSchema>) => {
+  createAssessment: async (
+    data: z.infer<typeof assessmentFormSchema>
+  ) => {
     const response = await apiClient.post('/assessments', data);
     return assessmentResponseSchema.parse(response.data);
   },
@@ -101,20 +316,50 @@ export const api = {
   },
 
   // Contact
-  submitContact: async (data: z.infer<typeof contactFormSchema>) => {
+  submitContact: async (
+    data: z.infer<typeof contactFormSchema>
+  ) => {
     const response = await apiClient.post('/contact', data);
     return z.object({ success: z.boolean() }).parse(response.data);
   },
 
   // Courses
-  getCourses: async (filters?: { category?: string; level?: string }) => {
-    const response = await apiClient.get('/courses', { params: filters });
+  getCourses: async (filters?: {
+    category?: string;
+    level?: string;
+  }) => {
+    const response = await apiClient.get('/courses', {
+      params: filters,
+    });
     return z.array(courseSchema).parse(response.data);
   },
 
   getCourse: async (id: string) => {
     const response = await apiClient.get(`/courses/${id}`);
     return courseSchema.parse(response.data);
+  },
+
+  // Learning and enrollment
+  enrollCourse: async (courseId: string) => {
+    const response = await apiClient.post(`/courses/${courseId}/enroll`);
+    return response.data;
+  },
+
+  getMyEnrollments: async () => {
+    const response = await apiClient.get('/courses/my/enrollments');
+    return response.data;
+  },
+
+  getMyLearningProgress: async () => {
+    const response = await apiClient.get('/courses/my/progress');
+    return response.data;
+  },
+
+  completeLesson: async (lessonId: string) => {
+    const response = await apiClient.post(
+      `/courses/lessons/${lessonId}/complete`
+    );
+    return response.data;
   },
 
   // Analytics
