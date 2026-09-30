@@ -39,7 +39,7 @@ type AdminForm = {
   level: CourseLevel;
   price: string;
   learningOutcomes: string;
-  curriculum: string;
+  curriculum: CurriculumModule[];
 };
 
 const emptyForm: AdminForm = {
@@ -50,11 +50,7 @@ const emptyForm: AdminForm = {
   level: "beginner",
   price: "0",
   learningOutcomes: "",
-  curriculum: JSON.stringify(
-    [{ module: "Module 1", topics: ["Introduction"] }],
-    null,
-    2,
-  ),
+  curriculum: [{ module: "Module 1", topics: ["Introduction"] }],
 };
 
 const inputClass =
@@ -69,29 +65,6 @@ function getErrorMessage(error: unknown): string {
     if (typeof message === "string") return message;
   }
   return error instanceof Error ? error.message : "Something went wrong.";
-}
-
-function parseCurriculum(value: string): CurriculumModule[] {
-  const parsed: unknown = JSON.parse(value);
-  if (
-    !Array.isArray(parsed) ||
-    parsed.length === 0 ||
-    !parsed.every(
-      (item) =>
-        item &&
-        typeof item.module === "string" &&
-        item.module.trim() &&
-        Array.isArray(item.topics) &&
-        item.topics.every(
-          (topic: unknown) => typeof topic === "string" && topic.trim(),
-        ),
-    )
-  ) {
-    throw new Error(
-      "Curriculum must be a JSON array of modules, each with a non-empty module name and topics array.",
-    );
-  }
-  return parsed as CurriculumModule[];
 }
 
 function statusClass(status: CourseStatus) {
@@ -191,9 +164,12 @@ useEffect(() => {
   }
 
   function beginEdit(course: AdminCourse) {
-    const curriculum = JSON.stringify(course.curriculum ?? [], null, 2);
+    const curriculum: CurriculumModule[] = (course.curriculum ?? []).map((item) => ({
+      module: item.module,
+      topics: [...item.topics],
+    }));
     setEditingId(course.id);
-    setOriginalCurriculum(curriculum);
+    setOriginalCurriculum(JSON.stringify(curriculum));
     setForm({
       title: course.title,
       category: course.category ?? "",
@@ -209,6 +185,98 @@ useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  function updateModule(moduleIndex: number, value: string) {
+    setForm((current) => ({
+      ...current,
+      curriculum: current.curriculum.map((item, index) =>
+        index === moduleIndex ? { ...item, module: value } : item
+      ),
+    }));
+  }
+
+  function addModule() {
+    setForm((current) => ({
+      ...current,
+      curriculum: [
+        ...current.curriculum,
+        { module: `Module ${current.curriculum.length + 1}`, topics: [""] },
+      ],
+    }));
+  }
+
+  function removeModule(moduleIndex: number) {
+    setForm((current) => ({
+      ...current,
+      curriculum: current.curriculum.filter((_, index) => index !== moduleIndex),
+    }));
+  }
+
+  function moveModule(moduleIndex: number, direction: -1 | 1) {
+    setForm((current) => {
+      const curriculum = [...current.curriculum];
+      const target = moduleIndex + direction;
+      if (target < 0 || target >= curriculum.length) return current;
+      [curriculum[moduleIndex], curriculum[target]] =
+        [curriculum[target], curriculum[moduleIndex]];
+      return { ...current, curriculum };
+    });
+  }
+
+  function updateTopic(moduleIndex: number, topicIndex: number, value: string) {
+    setForm((current) => ({
+      ...current,
+      curriculum: current.curriculum.map((item, index) =>
+        index === moduleIndex
+          ? {
+              ...item,
+              topics: item.topics.map((topic, lessonIndex) =>
+                lessonIndex === topicIndex ? value : topic
+              ),
+            }
+          : item
+      ),
+    }));
+  }
+
+  function addTopic(moduleIndex: number) {
+    setForm((current) => ({
+      ...current,
+      curriculum: current.curriculum.map((item, index) =>
+        index === moduleIndex
+          ? { ...item, topics: [...item.topics, ""] }
+          : item
+      ),
+    }));
+  }
+
+  function removeTopic(moduleIndex: number, topicIndex: number) {
+    setForm((current) => ({
+      ...current,
+      curriculum: current.curriculum.map((item, index) =>
+        index === moduleIndex
+          ? {
+              ...item,
+              topics: item.topics.filter((_, lessonIndex) => lessonIndex !== topicIndex),
+            }
+          : item
+      ),
+    }));
+  }
+
+  function moveTopic(moduleIndex: number, topicIndex: number, direction: -1 | 1) {
+    setForm((current) => ({
+      ...current,
+      curriculum: current.curriculum.map((item, index) => {
+        if (index !== moduleIndex) return item;
+        const topics = [...item.topics];
+        const target = topicIndex + direction;
+        if (target < 0 || target >= topics.length) return item;
+        [topics[topicIndex], topics[target]] = [topics[target], topics[topicIndex]];
+        return { ...item, topics };
+      }),
+    }));
+  }
+
   async function submitCourse(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSaving(true);
@@ -221,7 +289,26 @@ useEffect(() => {
         throw new Error("Enter a valid non-negative course price.");
       }
 
-      const curriculum = parseCurriculum(form.curriculum);
+      const curriculum = form.curriculum.map((item) => ({
+        module: item.module.trim(),
+        topics: item.topics.map((topic) => topic.trim()),
+      }));
+
+      if (curriculum.length === 0) {
+        throw new Error("Add at least one module to the curriculum.");
+      }
+      if (
+        curriculum.some(
+          (item) =>
+            !item.module ||
+            item.topics.length === 0 ||
+            item.topics.some((topic) => !topic)
+        )
+      ) {
+        throw new Error(
+          "Every module needs a name and at least one lesson with a title."
+        );
+      }
       const learningOutcomes = form.learningOutcomes
         .split("\n")
         .map((item) => item.trim())
@@ -254,7 +341,7 @@ useEffect(() => {
         };
 
         // Avoid replacing the curriculum unless the admin actually changed it.
-        if (form.curriculum !== originalCurriculum) {
+        if (JSON.stringify(curriculum) !== originalCurriculum) {
           updatePayload.curriculum = payload.curriculum;
         }
 
@@ -430,16 +517,132 @@ useEffect(() => {
                 placeholder={"Build REST APIs\nWork with databases\nDeploy an application"} />
             </label>
 
-            <label className="block text-sm text-slate-300">
-              Curriculum JSON *
-              <span className="mt-1 block text-xs text-slate-500">
-                Provide a non-empty array of modules, each with a module name and at least one topic.
-              </span>
-              <textarea required rows={10} spellCheck={false} className={`${inputClass} font-mono text-xs leading-6`}
-                value={form.curriculum}
-                onChange={(event) => updateField("curriculum", event.target.value)}
-                aria-label="Curriculum JSON" />
-            </label>
+            <section className="space-y-4 rounded-xl border border-slate-700 p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h3 className="font-semibold text-white">Course curriculum *</h3>
+                  <p className="mt-1 text-xs text-slate-400">
+                    Organize your course into modules and lessons.
+                  </p>
+                </div>
+                <span className="rounded-full bg-slate-800 px-3 py-1 text-xs text-slate-300">
+                  {form.curriculum.length} modules ·{" "}
+                  {form.curriculum.reduce((total, item) => total + item.topics.length, 0)} lessons
+                </span>
+              </div>
+
+              {form.curriculum.map((item, moduleIndex) => (
+                <div
+                  key={moduleIndex}
+                  className="space-y-3 rounded-xl border border-slate-700 bg-slate-950/60 p-4"
+                >
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-sm font-semibold text-slate-300">
+                      Module {moduleIndex + 1}
+                    </span>
+                    <div className="ml-auto flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => moveModule(moduleIndex, -1)}
+                        disabled={moduleIndex === 0}
+                        className="rounded-lg border border-slate-700 px-3 py-1.5 text-sm text-slate-200 disabled:opacity-30"
+                        aria-label={`Move module ${moduleIndex + 1} up`}
+                      >
+                        ↑
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => moveModule(moduleIndex, 1)}
+                        disabled={moduleIndex === form.curriculum.length - 1}
+                        className="rounded-lg border border-slate-700 px-3 py-1.5 text-sm text-slate-200 disabled:opacity-30"
+                        aria-label={`Move module ${moduleIndex + 1} down`}
+                      >
+                        ↓
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removeModule(moduleIndex)}
+                        className="rounded-lg border border-red-500/40 px-3 py-1.5 text-xs font-medium text-red-300 hover:bg-red-500/10"
+                      >
+                        Remove module
+                      </button>
+                    </div>
+                  </div>
+
+                  <input
+                    value={item.module}
+                    onChange={(event) => updateModule(moduleIndex, event.target.value)}
+                    className={inputClass}
+                    placeholder="Module name"
+                    aria-label={`Module ${moduleIndex + 1} name`}
+                  />
+
+                  <div className="space-y-2">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                      Lessons
+                    </p>
+                    {item.topics.map((topic, topicIndex) => (
+                      <div key={topicIndex} className="flex flex-wrap items-center gap-2">
+                        <span className="w-6 text-center text-xs text-slate-500">
+                          {topicIndex + 1}.
+                        </span>
+                        <input
+                          value={topic}
+                          onChange={(event) =>
+                            updateTopic(moduleIndex, topicIndex, event.target.value)
+                          }
+                          className={`${inputClass} mt-0 min-w-0 flex-1`}
+                          placeholder="Lesson title"
+                          aria-label={`Module ${moduleIndex + 1}, lesson ${topicIndex + 1}`}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => moveTopic(moduleIndex, topicIndex, -1)}
+                          disabled={topicIndex === 0}
+                          className="rounded-lg border border-slate-700 px-2.5 py-2 text-sm text-slate-200 disabled:opacity-30"
+                          aria-label={`Move lesson ${topicIndex + 1} up`}
+                        >
+                          ↑
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => moveTopic(moduleIndex, topicIndex, 1)}
+                          disabled={topicIndex === item.topics.length - 1}
+                          className="rounded-lg border border-slate-700 px-2.5 py-2 text-sm text-slate-200 disabled:opacity-30"
+                          aria-label={`Move lesson ${topicIndex + 1} down`}
+                        >
+                          ↓
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => removeTopic(moduleIndex, topicIndex)}
+                          className="rounded-lg border border-red-500/40 px-3 py-2 text-sm text-red-300 hover:bg-red-500/10"
+                          aria-label={`Remove lesson ${topicIndex + 1}`}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => addTopic(moduleIndex)}
+                      className="rounded-lg border border-dashed border-slate-600 px-3 py-2 text-xs font-semibold text-slate-300 hover:border-indigo-400 hover:text-white"
+                    >
+                      + Add lesson
+                    </button>
+                  </div>
+                </div>
+              ))}
+
+              <button
+                type="button"
+                onClick={addModule}
+                className="w-full rounded-xl border border-dashed border-indigo-400/50 px-4 py-3 text-sm font-semibold text-indigo-300 hover:bg-indigo-400/10"
+              >
+                + Add module
+              </button>
+            </section>
+
 
             <div className="flex flex-wrap gap-3">
               <button type="submit" disabled={saving}
