@@ -121,7 +121,7 @@ describe('PlacementService', () => {
 
       const result = await service.overview();
 
-      expect(result).toEqual({
+      expect(result).toMatchObject({
         applicationCounts: {
           [PlacementApplicationStatus.APPLIED]: 3,
           [PlacementApplicationStatus.SHORTLISTED]: 2,
@@ -134,12 +134,31 @@ describe('PlacementService', () => {
         upcomingInterviews: upcoming,
       });
 
-      expect(prisma.placementApplication.groupBy).toHaveBeenCalledWith({
-        by: ['status'],
-        _count: { _all: true },
-      });
+      expect(prisma.placementApplication.groupBy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          by: ['status'],
+          _count: { _all: true },
+          where: {
+            createdAt: { gte: expect.any(Date) },
+          },
+        }),
+      );
+      expect(prisma.placementApplication.groupBy).toHaveBeenCalledWith(
+        expect.objectContaining({
+          by: ['pipelineStage'],
+          _count: { _all: true },
+          where: {
+            createdAt: { gte: expect.any(Date) },
+          },
+        }),
+      );
       expect(prisma.placementInterview.count).toHaveBeenCalledWith({
-        where: { status: PlacementInterviewStatus.SCHEDULED },
+        where: {
+          status: PlacementInterviewStatus.SCHEDULED,
+          application: {
+            createdAt: { gte: expect.any(Date) },
+          },
+        },
       });
       expect(prisma.placementInterview.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -169,7 +188,7 @@ describe('PlacementService', () => {
   });
 
   describe('getCandidateReadiness', () => {
-    it('recognizes complete evidence and flags legacy technical assessment', async () => {
+    it('does not count legacy technical assessment as formal readiness evidence', async () => {
       prisma.candidate.findUnique.mockResolvedValue(completeCandidate);
 
       const result = await service.getCandidateReadiness('candidate-1');
@@ -192,15 +211,45 @@ describe('PlacementService', () => {
           approvedCount: 1,
         },
         technicalAssessment: {
-          complete: true,
-          score: 12,
-          maxScore: 15,
+          complete: false,
+          score: null,
+          maxScore: null,
           evidenceType: 'LEGACY_TECHNICAL_ASSESSMENT',
-          formal15QuestionAssessmentVerified: false,
+          formalInteractiveAssessmentVerified: false,
         },
       });
-      expect(result.allEvidenceComplete).toBe(true);
+      expect(result.allEvidenceComplete).toBe(false);
       expect(result.decision).toBe(PlacementReadinessDecision.PENDING);
+      expect(result.approvalRequiresHumanReview).toBe(true);
+    });
+
+    it('accepts a passing formal interactive assessment as technical evidence', async () => {
+      const candidate = {
+        ...completeCandidate,
+        assessments: [
+          {
+            ...completeCandidate.assessments[0],
+            id: 'formal-assessment-1',
+            score: 8,
+            maxScore: 10,
+            responses: {
+              rubricVersion: 'interactive-fullstack-v1',
+            },
+          },
+        ],
+      };
+      prisma.candidate.findUnique.mockResolvedValue(candidate);
+
+      const result = await service.getCandidateReadiness('candidate-1');
+
+      expect(result.checks.technicalAssessment).toMatchObject({
+        complete: true,
+        score: 8,
+        maxScore: 10,
+        evidenceType: 'FORMAL_INTERACTIVE_ASSESSMENT',
+        formalInteractiveAssessmentVerified: true,
+      });
+      expect(result.allEvidenceComplete).toBe(true);
       expect(result.approvalRequiresHumanReview).toBe(true);
     });
 
@@ -332,7 +381,20 @@ describe('PlacementService', () => {
         approvedByUserId: 'reviewer-1',
         notes: 'Evidence verified by placement team',
       };
-      prisma.candidate.findUnique.mockResolvedValue(completeCandidate);
+      prisma.candidate.findUnique.mockResolvedValue({
+        ...completeCandidate,
+        assessments: [
+          {
+            ...completeCandidate.assessments[0],
+            id: 'formal-assessment-approval',
+            score: 8,
+            maxScore: 10,
+            responses: {
+              rubricVersion: 'interactive-fullstack-v1',
+            },
+          },
+        ],
+      });
       prisma.placementReadinessReview.upsert.mockResolvedValue(savedReview);
 
       const result = await service.reviewCandidateReadiness(

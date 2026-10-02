@@ -250,7 +250,7 @@ type ReadinessItem = {
       score: number | null;
       maxScore: number | null;
       evidenceType: string;
-      formal15QuestionAssessmentVerified: boolean;
+      formalInteractiveAssessmentVerified: boolean;
     };
   };
   allEvidenceComplete: boolean;
@@ -1224,10 +1224,10 @@ export default function PlacementsPage() {
                         detail: `${selectedReadiness.checks.expertApprovedProject.approvedCount} approved`,
                       },
                       {
-                        label: "Technical assessment evidence ≥ 80%",
+                        label: "Formal interactive technical assessment ≥ 80%",
                         complete: selectedReadiness.checks.technicalAssessment.complete,
                         detail: selectedReadiness.checks.technicalAssessment.score == null
-                          ? "No qualifying assessment score recorded"
+                          ? "No formal interactive assessment score recorded"
                           : `${selectedReadiness.checks.technicalAssessment.score} / ${selectedReadiness.checks.technicalAssessment.maxScore ?? "—"}`,
                       },
                     ].map((check) => (
@@ -1287,7 +1287,7 @@ export default function PlacementsPage() {
                 <section>
                   <h3 className="mb-2 font-semibold">Technical assessment records</h3>
                   <p className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-300">
-                    This is legacy technical-assessment evidence. The API does not verify the blueprint’s formal 15-question assessment.
+                    The readiness checklist requires the formal interactive assessment (10 questions, rubric: interactive-fullstack-v1) with a score of at least 80%. Legacy technical assessments are displayed for reference but do not satisfy this check.
                   </p>
                   {selectedReadiness.technicalAssessments.length ? (
                     <div className="space-y-2">

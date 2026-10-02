@@ -608,12 +608,23 @@ export class PlacementService {
         project.expertApproved,
     );
 
-    const technicalAssessment = candidate.assessments.find(
-      (assessment) =>
-        assessment.score !== null &&
-        assessment.maxScore > 0 &&
-        assessment.score / assessment.maxScore >= 0.8,
+    const formalInteractiveAssessment = candidate.assessments.find(
+      (assessment) => {
+        const responses = assessment.responses;
+        return (
+          typeof responses === 'object' &&
+          responses !== null &&
+          !Array.isArray(responses) &&
+          responses.rubricVersion === 'interactive-fullstack-v1'
+        );
+      },
     );
+    const technicalAssessmentPassed =
+      !!formalInteractiveAssessment &&
+      formalInteractiveAssessment.score !== null &&
+      formalInteractiveAssessment.maxScore > 0 &&
+      formalInteractiveAssessment.score /
+        formalInteractiveAssessment.maxScore >= 0.8;
 
     const checks = {
       expertMocks: {
@@ -636,11 +647,14 @@ export class PlacementService {
         approvedCount: approvedProjects.length,
       },
       technicalAssessment: {
-        complete: !!technicalAssessment,
-        score: technicalAssessment?.score ?? null,
-        maxScore: technicalAssessment?.maxScore ?? null,
-        evidenceType: 'LEGACY_TECHNICAL_ASSESSMENT',
-        formal15QuestionAssessmentVerified: false,
+        complete: technicalAssessmentPassed,
+        score: formalInteractiveAssessment?.score ?? null,
+        maxScore: formalInteractiveAssessment?.maxScore ?? null,
+        evidenceType: formalInteractiveAssessment
+          ? 'FORMAL_INTERACTIVE_ASSESSMENT'
+          : 'LEGACY_TECHNICAL_ASSESSMENT',
+        formalInteractiveAssessmentVerified:
+          !!formalInteractiveAssessment,
       },
     };
 
@@ -654,7 +668,7 @@ export class PlacementService {
       { key: 'phone', label: 'Phone', complete: Boolean(candidate.phone?.trim()) },
       { key: 'education', label: 'Education', complete: Boolean(candidate.education?.trim()) },
       { key: 'graduationYear', label: 'Graduation year', complete: candidate.graduationYear != null },
-      { key: 'skills', label: 'Skills', complete: candidate.skills.length > 0 },
+      { key: 'skills', label: 'Skills', complete: (candidate.skills ?? []).length > 0 },
       { key: 'targetRole', label: 'Target role', complete: Boolean(candidate.targetRole?.trim()) },
       { key: 'resumeUrl', label: 'Resume', complete: Boolean(candidate.resumeUrl?.trim()) },
       { key: 'learningAvailability', label: 'Learning availability', complete: Boolean(candidate.learningAvailability?.trim()) },
