@@ -1,0 +1,396 @@
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import {
+  PlacementApplicationStatus,
+  PlacementInterviewOutcome,
+  PlacementInterviewStatus,
+  PlacementOfferStatus,
+  Prisma,
+} from '@prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
+
+const applicationStatuses = Object.values(PlacementApplicationStatus);
+const interviewStatuses = Object.values(PlacementInterviewStatus);
+const interviewOutcomes = Object.values(PlacementInterviewOutcome);
+const offerStatuses = Object.values(PlacementOfferStatus);
+
+function requiredString(body: Record<string, unknown>, key: string): string {
+  const value = body[key];
+  if (typeof value !== 'string' || !value.trim()) {
+    throw new BadRequestException(`${key} is required and must be a non-empty string.`);
+  }
+  return value.trim();
+}
+
+function optionalString(body: Record<string, unknown>, key: string): string | null | undefined {
+  const value = body[key];
+  if (value === undefined) return undefined;
+  if (value === null || value === '') return null;
+  if (typeof value !== 'string') {
+    throw new BadRequestException(`${key} must be a string or null.`);
+  }
+  return value.trim();
+}
+
+function optionalDate(body: Record<string, unknown>, key: string): Date | null | undefined {
+  const value = body[key];
+  if (value === undefined) return undefined;
+  if (value === null || value === '') return null;
+  if (typeof value !== 'string' || Number.isNaN(Date.parse(value))) {
+    throw new BadRequestException(`${key} must be a valid date string.`);
+  }
+  return new Date(value);
+}
+
+function enumValue<T extends string>(
+  value: unknown,
+  allowed: readonly T[],
+  field: string,
+): T {
+  if (typeof value !== 'string' || !allowed.includes(value as T)) {
+    throw new BadRequestException(`${field} must be one of: ${allowed.join(', ')}.`);
+  }
+  return value as T;
+}
+
+@Injectable()
+export class PlacementService {
+  constructor(private readonly prisma: PrismaService) {}
+
+  async overview() {
+    const [applications, interviews, offers, upcomingInterviews] = await Promise.all([
+      this.prisma.placementApplication.groupBy({
+        by: ['status'],
+        _count: { _all: true },
+      }),
+      this.prisma.placementInterview.count({
+        where: { status: PlacementInterviewStatus.SCHEDULED },
+      }),
+      this.prisma.placementOffer.groupBy({
+        by: ['status'],
+        _count: { _all: true },
+      }),
+      this.prisma.placementInterview.findMany({
+        where: {
+          status: PlacementInterviewStatus.SCHEDULED,
+          scheduledAt: { gte: new Date() },
+        },
+        orderBy: { scheduledAt: 'asc' },
+        take: 10,
+        include: {
+          application: {
+            select: {
+              id: true,
+              candidateId: true,
+              companyName: true,
+              jobTitle: true,
+            },
+          },
+        },
+      }),
+    ]);
+
+    return {
+      applicationCounts: Object.fromEntries(
+        applications.map((item) => [item.status, item._count._all]),
+      ),
+      scheduledInterviewCount: interviews,
+      offerCounts: Object.fromEntries(
+        offers.map((item) => [item.status, item._count._all]),
+      ),
+      upcomingInterviews,
+    };
+  }
+
+  async listApplications(filters: {
+    search?: string;
+    status?: string;
+    page?: string;
+    limit?: string;
+  }) {
+    const page = Math.max(1, Number.parseInt(filters.page ?? '1', 10) || 1);
+    const limit = Math.min(100, Math.max(1, Number.parseInt(filters.limit ?? '20', 10) || 20));
+    const where: Prisma.PlacementApplicationWhereInput = {};
+
+    if (filters.status) {
+      where.status = enumValue(filters.status, applicationStatuses, 'status');
+    }
+    if (filters.search?.trim()) {
+      const search = filters.search.trim();
+      where.OR = [
+        { companyName: { contains: search, mode: 'insensitive' } },
+        { jobTitle: { contains: search, mode: 'insensitive' } },
+        { candidateId: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    const [items, total] = await Promise.all([
+      this.prisma.placementApplication.findMany({
+        where,
+        orderBy: { updatedAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+        include: {
+          interviews: { orderBy: { scheduledAt: 'asc' } },
+          offer: true,
+        },
+      }),
+      this.prisma.placementApplication.count({ where }),
+    ]);
+
+    return { items, pagination: { page, limit, total, pages: Math.ceil(total / limit) } };
+  }
+
+  async getApplication(id: string) {
+    const application = await this.prisma.placementApplication.findUnique({
+      where: { id },
+      include: {
+        interviews: { orderBy: { scheduledAt: 'asc' } },
+        offer: true,
+      },
+    });
+    if (!application) throw new NotFoundException('Placement application not found.');
+    return application;
+  }
+
+  async createApplication(body: Record<string, unknown>, userId: string) {
+    const candidateId = requiredString(body, 'candidateId');
+    const candidate = await this.prisma.candidate.findUnique({
+      where: { id: candidateId },
+      select: { id: true },
+    });
+    if (!candidate) throw new NotFoundException('Candidate not found.');
+
+    const data: Prisma.PlacementApplicationCreateInput = {
+      candidate: { connect: { id: candidateId } },
+      companyName: requiredString(body, 'companyName'),
+      jobTitle: requiredString(body, 'jobTitle'),
+      jobLocation: optionalString(body, 'jobLocation'),
+      employmentType: optionalString(body, 'employmentType'),
+      jobDescription: optionalString(body, 'jobDescription'),
+      source: optionalString(body, 'source'),
+      notes: optionalString(body, 'notes'),
+      status: body.status === undefined
+        ? PlacementApplicationStatus.DRAFT
+        : enumValue(body.status, applicationStatuses, 'status'),
+      appliedAt: optionalDate(body, 'appliedAt'),
+      createdByUser: { connect: { id: userId } },
+    };
+
+    return this.prisma.placementApplication.create({
+      data,
+      include: { interviews: true, offer: true },
+    });
+  }
+
+  async updateApplication(id: string, body: Record<string, unknown>) {
+    await this.ensureApplication(id);
+    const data: Prisma.PlacementApplicationUpdateInput = {};
+
+    const companyName = optionalString(body, 'companyName');
+    if (companyName !== undefined) {
+      if (!companyName) throw new BadRequestException('companyName cannot be empty.');
+      data.companyName = companyName;
+    }
+
+    const jobTitle = optionalString(body, 'jobTitle');
+    if (jobTitle !== undefined) {
+      if (!jobTitle) throw new BadRequestException('jobTitle cannot be empty.');
+      data.jobTitle = jobTitle;
+    }
+
+    const jobLocation = optionalString(body, 'jobLocation');
+    if (jobLocation !== undefined) data.jobLocation = jobLocation;
+
+    const employmentType = optionalString(body, 'employmentType');
+    if (employmentType !== undefined) data.employmentType = employmentType;
+
+    const jobDescription = optionalString(body, 'jobDescription');
+    if (jobDescription !== undefined) data.jobDescription = jobDescription;
+
+    const source = optionalString(body, 'source');
+    if (source !== undefined) data.source = source;
+
+    const notes = optionalString(body, 'notes');
+    if (notes !== undefined) data.notes = notes;
+
+    if (body.status !== undefined) {
+      data.status = enumValue(body.status, applicationStatuses, 'status');
+    }
+    const appliedAt = optionalDate(body, 'appliedAt');
+    if (appliedAt !== undefined) data.appliedAt = appliedAt;
+
+    return this.prisma.placementApplication.update({
+      where: { id },
+      data,
+      include: { interviews: true, offer: true },
+    });
+  }
+
+  async createInterview(applicationId: string, body: Record<string, unknown>) {
+    await this.ensureApplication(applicationId);
+    const duration = body.durationMins === undefined ? null : Number(body.durationMins);
+    if (duration !== null && (!Number.isInteger(duration) || duration < 1 || duration > 1440)) {
+      throw new BadRequestException('durationMins must be an integer between 1 and 1440.');
+    }
+
+    const scheduledAt = optionalDate(body, 'scheduledAt');
+    if (!scheduledAt) throw new BadRequestException('scheduledAt is required.');
+
+    return this.prisma.placementInterview.create({
+      data: {
+        application: { connect: { id: applicationId } },
+        round: (() => {
+          const value = body.round === undefined ? 1 : Number(body.round);
+          if (!Number.isInteger(value) || value < 1) {
+            throw new BadRequestException('round must be a positive integer.');
+          }
+          return value;
+        })(),
+        title: optionalString(body, 'title'),
+        scheduledAt,
+        durationMins: duration,
+        mode: optionalString(body, 'mode'),
+        meetingLink: optionalString(body, 'meetingLink'),
+        interviewer: optionalString(body, 'interviewer'),
+        feedback: optionalString(body, 'feedback'),
+        status: body.status === undefined
+          ? PlacementInterviewStatus.SCHEDULED
+          : enumValue(body.status, interviewStatuses, 'status'),
+        outcome: body.outcome === undefined
+          ? PlacementInterviewOutcome.PENDING
+          : enumValue(body.outcome, interviewOutcomes, 'outcome'),
+      },
+    });
+  }
+
+  async updateInterview(id: string, body: Record<string, unknown>) {
+    const existing = await this.prisma.placementInterview.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Interview not found.');
+
+    const data: Prisma.PlacementInterviewUpdateInput = {};
+
+    if (body.round !== undefined) {
+      const round = Number(body.round);
+      if (!Number.isInteger(round) || round < 1) {
+        throw new BadRequestException('round must be a positive integer.');
+      }
+      data.round = round;
+    }
+
+    const title = optionalString(body, 'title');
+    if (title !== undefined) data.title = title;
+
+    const mode = optionalString(body, 'mode');
+    if (mode !== undefined) data.mode = mode;
+
+    const meetingLink = optionalString(body, 'meetingLink');
+    if (meetingLink !== undefined) data.meetingLink = meetingLink;
+
+    const interviewer = optionalString(body, 'interviewer');
+    if (interviewer !== undefined) data.interviewer = interviewer;
+
+    const feedback = optionalString(body, 'feedback');
+    if (feedback !== undefined) data.feedback = feedback;
+
+    const scheduledAt = optionalDate(body, 'scheduledAt');
+    if (scheduledAt !== undefined) {
+      if (!scheduledAt) throw new BadRequestException('scheduledAt cannot be null.');
+      data.scheduledAt = scheduledAt;
+    }
+
+    if (body.durationMins !== undefined) {
+      const duration = body.durationMins === null ? null : Number(body.durationMins);
+      if (duration !== null && (!Number.isInteger(duration) || duration < 1 || duration > 1440)) {
+        throw new BadRequestException('durationMins must be an integer between 1 and 1440.');
+      }
+      data.durationMins = duration;
+    }
+
+    if (body.status !== undefined) {
+      data.status = enumValue(body.status, interviewStatuses, 'status');
+    }
+    if (body.outcome !== undefined) {
+      data.outcome = enumValue(body.outcome, interviewOutcomes, 'outcome');
+    }
+
+    return this.prisma.placementInterview.update({ where: { id }, data });
+  }
+
+  async createOffer(applicationId: string, body: Record<string, unknown>) {
+    await this.ensureApplication(applicationId);
+    const existing = await this.prisma.placementOffer.findUnique({ where: { applicationId } });
+    if (existing) throw new BadRequestException('An offer already exists for this application.');
+
+    const compensation = body.compensation === undefined || body.compensation === null
+      ? null
+      : Number(body.compensation);
+    if (compensation !== null && (!Number.isFinite(compensation) || compensation < 0)) {
+      throw new BadRequestException('compensation must be a non-negative number.');
+    }
+
+    return this.prisma.placementOffer.create({
+      data: {
+        application: { connect: { id: applicationId } },
+        status: body.status === undefined
+          ? PlacementOfferStatus.PENDING
+          : enumValue(body.status, offerStatuses, 'status'),
+        compensation,
+        currency: optionalString(body, 'currency') ?? 'INR',
+        offeredAt: optionalDate(body, 'offeredAt'),
+        expiresAt: optionalDate(body, 'expiresAt'),
+        joiningDate: optionalDate(body, 'joiningDate'),
+        notes: optionalString(body, 'notes'),
+      },
+    });
+  }
+
+  async updateOffer(id: string, body: Record<string, unknown>) {
+    const existing = await this.prisma.placementOffer.findUnique({ where: { id } });
+    if (!existing) throw new NotFoundException('Offer not found.');
+
+    const data: Prisma.PlacementOfferUpdateInput = {};
+    if (body.status !== undefined) {
+      data.status = enumValue(body.status, offerStatuses, 'status');
+    }
+
+    const currency = optionalString(body, 'currency');
+    if (currency !== undefined) {
+      if (!currency) throw new BadRequestException('currency cannot be empty.');
+      data.currency = currency;
+    }
+
+    const notes = optionalString(body, 'notes');
+    if (notes !== undefined) data.notes = notes;
+
+    const offeredAt = optionalDate(body, 'offeredAt');
+    if (offeredAt !== undefined) data.offeredAt = offeredAt;
+
+    const expiresAt = optionalDate(body, 'expiresAt');
+    if (expiresAt !== undefined) data.expiresAt = expiresAt;
+
+    const joiningDate = optionalDate(body, 'joiningDate');
+    if (joiningDate !== undefined) data.joiningDate = joiningDate;
+
+    if (body.compensation !== undefined) {
+      const value = body.compensation === null ? null : Number(body.compensation);
+      if (value !== null && (!Number.isFinite(value) || value < 0)) {
+        throw new BadRequestException('compensation must be a non-negative number.');
+      }
+      data.compensation = value;
+    }
+
+    return this.prisma.placementOffer.update({ where: { id }, data });
+  }
+
+  private async ensureApplication(id: string): Promise<void> {
+    const found = await this.prisma.placementApplication.findUnique({
+      where: { id },
+      select: { id: true },
+    });
+    if (!found) throw new NotFoundException('Placement application not found.');
+  }
+}

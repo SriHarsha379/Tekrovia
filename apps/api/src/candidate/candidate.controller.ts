@@ -37,7 +37,7 @@ export class CandidateController {
   ) {}
 
   private assertAdmin(request: AuthenticatedRequest) {
-    if (request.user.role !== 'ADMIN') {
+    if (!['ADMIN', 'SUPER_ADMIN'].includes(request.user.role)) {
       throw new ForbiddenException(
         'Administrator access required.',
       );

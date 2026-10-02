@@ -61,14 +61,15 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  candidate   Candidate?
-  sessions    Session[]
-  otpCodes    OtpCode[]
-  leadsOwned  Lead[]       @relation("LeadOwner")
-  assessments Assessment[]
-  enrollments  Enrollment[]
-  lessonProgress LessonProgress[]
-  auditLogs   AuditLog[]
+  candidate                    Candidate?
+  sessions                     Session[]
+  otpCodes                     OtpCode[]
+  leadsOwned                   Lead[]                 @relation("LeadOwner")
+  assessments                  Assessment[]
+  enrollments                  Enrollment[]
+  lessonProgress               LessonProgress[]
+  auditLogs                    AuditLog[]
+  placementApplicationsCreated PlacementApplication[] @relation("PlacementApplicationCreator")
 
   @@map("users")
 }
@@ -139,11 +140,15 @@ model Candidate {
   updatedAt            DateTime                 @updatedAt
 
   // Corrected relations
-  registrations Registration[]
-  assessments   Assessment[]
-  enrollments   Enrollment[]
-  leads         Lead[]
-  auditLogs     AuditLog[]
+  registrations         Registration[]
+  assessments           Assessment[]
+  enrollments           Enrollment[]
+  leads                 Lead[]
+  auditLogs             AuditLog[]
+  placementApplications PlacementApplication[]
+  expertMockInterviews  ExpertMockInterview[]
+  projectReviews        CandidateProjectReview[]
+  readinessReview       PlacementReadinessReview?
 
   @@index([candidateCode])
   @@index([email])
@@ -247,6 +252,195 @@ model AuditLog {
   @@map("audit_logs")
 }
 
+enum PlacementPipelineStage {
+  PROFILE_REVIEW
+  PREPARATION_PENDING
+  JOB_READY
+  RESUME_APPROVED
+  JOBS_MATCHED
+  SUBMITTED
+  INTERVIEW_SCHEDULED
+  FEEDBACK_AWAITED
+  SELECTED
+  OFFER_RECEIVED
+  JOINED
+}
+
+enum PlacementApplicationStatus {
+  DRAFT
+  APPLIED
+  SHORTLISTED
+  INTERVIEW
+  OFFER
+  HIRED
+  REJECTED
+  WITHDRAWN
+}
+
+enum PlacementInterviewStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+  RESCHEDULED
+}
+
+enum PlacementInterviewOutcome {
+  PENDING
+  PASSED
+  FAILED
+  ON_HOLD
+}
+
+enum PlacementOfferStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  EXPIRED
+  WITHDRAWN
+}
+
+model PlacementApplication {
+  id              String                     @id @default(cuid())
+  candidateId     String
+  candidate       Candidate                  @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  companyName     String
+  jobTitle        String
+  jobLocation     String?
+  employmentType  String?
+  jobDescription  String?                    @db.Text
+  source          String?
+  status          PlacementApplicationStatus @default(DRAFT)
+  pipelineStage   PlacementPipelineStage     @default(PROFILE_REVIEW)
+  appliedAt       DateTime?
+  notes           String?                    @db.Text
+  createdByUserId String?
+  createdByUser   User?                      @relation("PlacementApplicationCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  interviews      PlacementInterview[]
+  offer           PlacementOffer?
+  pipelineHistory PlacementPipelineHistory[]
+  createdAt       DateTime                   @default(now())
+  updatedAt       DateTime                   @updatedAt
+
+  @@index([candidateId, status])
+  @@index([status, updatedAt])
+  @@index([companyName])
+  @@map("placement_applications")
+}
+
+model PlacementInterview {
+  id            String                    @id @default(cuid())
+  applicationId String
+  application   PlacementApplication      @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  round         Int                       @default(1)
+  title         String?
+  scheduledAt   DateTime
+  durationMins  Int?
+  mode          String?
+  meetingLink   String?
+  interviewer   String?
+  status        PlacementInterviewStatus  @default(SCHEDULED)
+  outcome       PlacementInterviewOutcome @default(PENDING)
+  feedback      String?                   @db.Text
+  createdAt     DateTime                  @default(now())
+  updatedAt     DateTime                  @updatedAt
+
+  @@index([applicationId, scheduledAt])
+  @@index([scheduledAt, status])
+  @@map("placement_interviews")
+}
+
+model PlacementOffer {
+  id            String               @id @default(cuid())
+  applicationId String               @unique
+  application   PlacementApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  status        PlacementOfferStatus @default(PENDING)
+  compensation  Float?
+  currency      String               @default("INR")
+  offeredAt     DateTime?
+  expiresAt     DateTime?
+  joiningDate   DateTime?
+  notes         String?              @db.Text
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+
+  @@index([status, joiningDate])
+  @@map("placement_offers")
+}
+
+enum ExpertMockInterviewStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+}
+
+enum CandidateProjectStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  SUBMITTED
+  NEEDS_REVISION
+  APPROVED
+}
+
+enum PlacementReadinessDecision {
+  PENDING
+  APPROVED
+  NEEDS_WORK
+}
+
+model ExpertMockInterview {
+  id           String                    @id @default(cuid())
+  candidateId  String
+  candidate    Candidate                 @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  sequence     Int
+  isFinal      Boolean                   @default(false)
+  status       ExpertMockInterviewStatus @default(SCHEDULED)
+  score        Float?
+  maxScore     Float                     @default(10)
+  reviewerName String?
+  feedback     String?                   @db.Text
+  scheduledAt  DateTime?
+  completedAt  DateTime?
+  createdAt    DateTime                  @default(now())
+  updatedAt    DateTime                  @updatedAt
+
+  @@unique([candidateId, sequence])
+  @@index([candidateId, status])
+  @@map("expert_mock_interviews")
+}
+
+model CandidateProjectReview {
+  id             String                 @id @default(cuid())
+  candidateId    String
+  candidate      Candidate              @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  projectName    String
+  status         CandidateProjectStatus @default(NOT_STARTED)
+  mentorFeedback String?                @db.Text
+  expertApproved Boolean                @default(false)
+  reviewerName   String?
+  submittedAt    DateTime?
+  reviewedAt     DateTime?
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+
+  @@index([candidateId, status])
+  @@map("candidate_project_reviews")
+}
+
+model PlacementReadinessReview {
+  id               String                     @id @default(cuid())
+  candidateId      String                     @unique
+  candidate        Candidate                  @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  decision         PlacementReadinessDecision @default(PENDING)
+  approvedByUserId String?
+  notes            String?                    @db.Text
+  reviewedAt       DateTime?
+  createdAt        DateTime                   @default(now())
+  updatedAt        DateTime                   @updatedAt
+
+  @@index([decision, updatedAt])
+  @@map("placement_readiness_reviews")
+}
+
 model HealthCheck {
   id        String   @id @default(cuid())
   service   String
@@ -255,7 +449,6 @@ model HealthCheck {
 
   @@map("health_checks")
 }
-
 
 enum CourseLevel {
   beginner
@@ -353,16 +546,31 @@ model Enrollment {
 }
 
 model LessonProgress {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   lessonId    String
-  lesson      Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-  isCompleted Boolean  @default(false)
+  lesson      Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  isCompleted Boolean   @default(false)
   completedAt DateTime?
-  updatedAt   DateTime @updatedAt
+  updatedAt   DateTime  @updatedAt
 
   @@unique([userId, lessonId])
   @@index([userId])
   @@map("lesson_progress")
+}
+
+model PlacementPipelineHistory {
+  id              String               @id @default(cuid())
+  applicationId   String
+  application     PlacementApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  fromStage       PlacementPipelineStage?
+  toStage         PlacementPipelineStage
+  note            String?               @db.Text
+  changedByUserId String?
+  createdAt       DateTime              @default(now())
+
+  @@index([applicationId, createdAt])
+  @@index([toStage, createdAt])
+  @@map("placement_pipeline_history")
 }

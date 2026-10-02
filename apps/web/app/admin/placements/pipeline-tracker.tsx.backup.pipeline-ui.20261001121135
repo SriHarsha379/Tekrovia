@@ -1,0 +1,142 @@
+'use client';
+
+type PipelineStatus =
+  | 'DRAFT'
+  | 'APPLIED'
+  | 'SHORTLISTED'
+  | 'INTERVIEW'
+  | 'OFFER'
+  | 'HIRED'
+  | 'REJECTED'
+  | 'WITHDRAWN';
+
+type PipelineApplication = {
+  status: string;
+};
+
+type Props = {
+  applications: PipelineApplication[];
+  selectedStatus: string;
+  onSelectStatus: (status: string) => void;
+};
+
+const STAGES: {
+  status: PipelineStatus;
+  label: string;
+  description: string;
+  tone: string;
+}[] = [
+  {
+    status: 'DRAFT',
+    label: 'Draft',
+    description: 'Being prepared',
+    tone: 'border-slate-700 bg-slate-950 text-slate-200',
+  },
+  {
+    status: 'APPLIED',
+    label: 'Applied',
+    description: 'Submitted to employer',
+    tone: 'border-blue-800 bg-blue-950/30 text-blue-200',
+  },
+  {
+    status: 'SHORTLISTED',
+    label: 'Shortlisted',
+    description: 'Selected for next step',
+    tone: 'border-violet-800 bg-violet-950/30 text-violet-200',
+  },
+  {
+    status: 'INTERVIEW',
+    label: 'Interview',
+    description: 'Interview process',
+    tone: 'border-amber-800 bg-amber-950/30 text-amber-200',
+  },
+  {
+    status: 'OFFER',
+    label: 'Offer',
+    description: 'Offer in progress',
+    tone: 'border-emerald-800 bg-emerald-950/30 text-emerald-200',
+  },
+  {
+    status: 'HIRED',
+    label: 'Hired',
+    description: 'Successfully hired',
+    tone: 'border-green-700 bg-green-950/40 text-green-200',
+  },
+  {
+    status: 'REJECTED',
+    label: 'Rejected',
+    description: 'Application unsuccessful',
+    tone: 'border-rose-800 bg-rose-950/30 text-rose-200',
+  },
+  {
+    status: 'WITHDRAWN',
+    label: 'Withdrawn',
+    description: 'Application withdrawn',
+    tone: 'border-slate-700 bg-slate-950 text-slate-300',
+  },
+];
+
+export default function PlacementPipelineTracker({
+  applications,
+  selectedStatus,
+  onSelectStatus,
+}: Props) {
+  const countFor = (status: string) =>
+    applications.filter((application) => application.status === status).length;
+
+  return (
+    <section className="overflow-hidden rounded-xl border border-slate-800 bg-slate-900 shadow-sm">
+      <div className="border-b border-slate-800 p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold">Placement pipeline</h2>
+            <p className="mt-1 text-sm text-slate-400">
+              Track applications across their current persisted stages.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => onSelectStatus('')}
+            className={`rounded-lg border px-3 py-2 text-sm font-semibold transition ${
+              selectedStatus === ''
+                ? 'border-indigo-500 bg-indigo-500/15 text-indigo-200'
+                : 'border-slate-700 text-slate-300 hover:bg-slate-800'
+            }`}
+          >
+            All applications · {applications.length}
+          </button>
+        </div>
+      </div>
+
+      <div className="grid gap-3 p-5 sm:grid-cols-2 lg:grid-cols-4">
+        {STAGES.map((stage) => {
+          const active = selectedStatus === stage.status;
+          return (
+            <button
+              key={stage.status}
+              type="button"
+              aria-pressed={active}
+              onClick={() => onSelectStatus(active ? '' : stage.status)}
+              className={`rounded-xl border p-4 text-left transition hover:-translate-y-0.5 hover:border-indigo-500 ${
+                stage.tone
+              } ${active ? 'ring-2 ring-indigo-400 ring-offset-2 ring-offset-slate-900' : ''}`}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <span className="text-sm font-semibold">{stage.label}</span>
+                <span className="rounded-lg bg-black/20 px-2.5 py-1 text-xl font-bold tabular-nums">
+                  {countFor(stage.status)}
+                </span>
+              </div>
+              <p className="mt-2 text-xs opacity-75">{stage.description}</p>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="border-t border-slate-800 px-5 py-3 text-xs text-slate-400">
+        Counts reflect the applications currently loaded by the table filters and API page limit.
+        Rejected and withdrawn applications are shown as outcomes, not progression stages.
+      </div>
+    </section>
+  );
+}

@@ -1,0 +1,1466 @@
+'use client';
+
+import PlacementPipelineTracker from './pipeline-tracker';
+
+
+import { useCallback, useEffect, useState, type FormEvent } from 'react';
+import Link from 'next/link';
+
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
+
+const APPLICATION_STATUSES = [
+  'DRAFT', 'APPLIED', 'SHORTLISTED', 'INTERVIEW',
+  'OFFER', 'HIRED', 'REJECTED', 'WITHDRAWN',
+];
+
+const PIPELINE_STAGES = [
+  'PROFILE_REVIEW',
+  'PREPARATION_PENDING',
+  'JOB_READY',
+  'RESUME_APPROVED',
+  'JOBS_MATCHED',
+  'SUBMITTED',
+  'INTERVIEW_SCHEDULED',
+  'FEEDBACK_AWAITED',
+  'SELECTED',
+  'OFFER_RECEIVED',
+  'JOINED',
+];
+
+const INTERVIEW_STATUSES = [
+  'SCHEDULED', 'COMPLETED', 'CANCELLED', 'RESCHEDULED',
+];
+
+const INTERVIEW_OUTCOMES = [
+  'PENDING', 'PASSED', 'FAILED', 'ON_HOLD',
+];
+
+const OFFER_STATUSES = [
+  'PENDING', 'ACCEPTED', 'DECLINED', 'EXPIRED', 'WITHDRAWN',
+];
+
+type Interview = {
+  id: string;
+  round?: number;
+  title?: string | null;
+  scheduledAt?: string;
+  durationMins?: number | null;
+  mode?: string | null;
+  meetingLink?: string | null;
+  interviewer?: string | null;
+  feedback?: string | null;
+  status?: string;
+  outcome?: string;
+};
+
+type Offer = {
+  id: string;
+  status?: string;
+  compensation?: number | null;
+  currency?: string;
+  offeredAt?: string | null;
+  expiresAt?: string | null;
+  joiningDate?: string | null;
+  notes?: string | null;
+};
+
+type Application = {
+  id: string;
+  candidateId: string;
+  companyName: string;
+  jobTitle: string;
+  jobLocation?: string | null;
+  employmentType?: string | null;
+  jobDescription?: string | null;
+  source?: string | null;
+  notes?: string | null;
+  status: string;
+  pipelineStage?: string;
+  pipelineHistory?: Array<{
+    id: string;
+    fromStage?: string | null;
+    toStage: string;
+    note?: string | null;
+    changedByUserId?: string | null;
+    createdAt: string;
+  }>;
+  appliedAt?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+  interviews?: Interview[];
+  offer?: Offer | null;
+};
+
+type Overview = {
+  applicationCounts?: Record<string, number>;
+  scheduledInterviewCount?: number;
+  offerCounts?: Record<string, number>;
+  pipelineStageCounts?: Record<string, number>;
+  upcomingInterviews?: Array<{
+    id: string;
+    scheduledAt: string;
+    title?: string | null;
+    application?: {
+      candidateId?: string;
+      companyName?: string;
+      jobTitle?: string;
+    };
+  }>;
+};
+
+type ApplicationForm = {
+  candidateId: string;
+  companyName: string;
+  jobTitle: string;
+  jobLocation: string;
+  employmentType: string;
+  jobDescription: string;
+  source: string;
+  notes: string;
+  status: string;
+  appliedAt: string;
+};
+
+const EMPTY_FORM: ApplicationForm = {
+  candidateId: '',
+  companyName: '',
+  jobTitle: '',
+  jobLocation: '',
+  employmentType: '',
+  jobDescription: '',
+  source: '',
+  notes: '',
+  status: 'DRAFT',
+  appliedAt: '',
+};
+
+function dateInput(value?: string | null) {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+
+function pretty(value?: string | null) {
+  if (!value) return '—';
+  return value
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/[_-]/g, ' ')
+    .toLowerCase()
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function dateText(value?: string | null) {
+  if (!value) return '—';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? value
+    : date.toLocaleString();
+}
+
+function statusStyle(status?: string) {
+  const value = (status ?? '').toUpperCase();
+  if (['PLACED', 'ACCEPTED', 'PASSED', 'COMPLETED'].includes(value)) {
+    return 'bg-emerald-100 text-emerald-300';
+  }
+  if (['REJECTED', 'DECLINED', 'FAILED', 'CANCELLED', 'WITHDRAWN', 'EXPIRED'].includes(value)) {
+    return 'bg-rose-100 text-rose-300';
+  }
+  if (['INTERVIEW', 'SHORTLISTED', 'OFFERED', 'SCHEDULED'].includes(value)) {
+    return 'bg-blue-950/60 text-blue-300';
+  }
+  return 'bg-amber-950/50 text-amber-300';
+}
+
+function Field({
+  label,
+  children,
+}: {
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className="block space-y-1.5">
+      <span className="text-sm font-medium text-slate-200">{label}</span>
+      {children}
+    </label>
+  );
+}
+
+const inputClass =
+  'w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2.5 text-sm text-slate-100 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20';
+
+function Button({
+  children,
+  onClick,
+  disabled,
+  variant = 'primary',
+  type = 'button',
+}: {
+  children: React.ReactNode;
+  onClick?: () => void;
+  disabled?: boolean;
+  variant?: 'primary' | 'secondary' | 'danger';
+  type?: 'button' | 'submit';
+}) {
+  const styles = {
+    primary: 'bg-indigo-600 text-white hover:bg-indigo-500',
+    secondary: 'border border-slate-700 bg-slate-900 text-slate-200 hover:bg-slate-950',
+    danger: 'bg-rose-600 text-white hover:bg-rose-700',
+  };
+  return (
+    <button
+      type={type}
+      onClick={onClick}
+      disabled={disabled}
+      className={`inline-flex items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${styles[variant]}`}
+    >
+      {children}
+    </button>
+  );
+}
+
+
+type ReadinessItem = {
+  candidateId: string;
+  checks: {
+    expertMocks: { complete: boolean; completedCount: number; requiredCount: number };
+    finalExpertMock: { complete: boolean; score: number | null; maxScore: number | null; requiredScore: number };
+    expertApprovedProject: { complete: boolean; approvedCount: number };
+    technicalAssessment: {
+      complete: boolean;
+      score: number | null;
+      maxScore: number | null;
+      evidenceType: string;
+      formal15QuestionAssessmentVerified: boolean;
+    };
+  };
+  allEvidenceComplete: boolean;
+  decision: string;
+  review?: { notes?: string | null; reviewedAt?: string | null } | null;
+  expertMockInterviews: Array<{
+    id: string; sequence: number; isFinal: boolean; status: string;
+    score: number | null; maxScore: number | null;
+    reviewerName?: string | null; feedback?: string | null;
+  }>;
+  projectReviews: Array<{
+    id: string; projectName: string; status: string; expertApproved: boolean;
+    reviewerName?: string | null; mentorFeedback?: string | null;
+  }>;
+  technicalAssessments: Array<{
+    id: string; status: string; score: number | null; maxScore: number;
+    updatedAt?: string;
+  }>;
+};
+
+export default function PlacementsPage() {
+  const [overview, setOverview] = useState<Overview | null>(null);
+  const [applications, setApplications] = useState<Application[]>([]);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [pipelineStageFilter, setPipelineStageFilter] = useState('');
+  const [appliedSearch, setAppliedSearch] = useState('');
+  const [appliedStatus, setAppliedStatus] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+  const [showCreate, setShowCreate] = useState(false);
+  const [selected, setSelected] = useState<Application | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState<ApplicationForm>(EMPTY_FORM);
+  const [saving, setSaving] = useState(false);
+  const [actionError, setActionError] = useState('');
+  const [interviewForm, setInterviewForm] = useState({
+    round: '1',
+    title: '',
+    scheduledAt: '',
+    durationMins: '60',
+    mode: 'ONLINE',
+    meetingLink: '',
+    interviewer: '',
+  });
+  const [offerForm, setOfferForm] = useState({
+    compensation: '',
+    currency: 'INR',
+    offeredAt: '',
+    expiresAt: '',
+    joiningDate: '',
+    notes: '',
+  });
+
+  const token = () =>
+    typeof window === 'undefined'
+      ? null
+      : window.sessionStorage.getItem('tekrovia_access_token');
+
+  const request = useCallback(async (path: string, init: RequestInit = {}) => {
+    const accessToken = token();
+    if (!accessToken) {
+      throw new Error('Your session is missing. Please sign in again.');
+    }
+
+    const response = await fetch(`${API_BASE}${path}`, {
+      ...init,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        Accept: 'application/json',
+        ...(init.body ? { 'Content-Type': 'application/json' } : {}),
+        ...init.headers,
+      },
+    });
+
+    const text = await response.text();
+    let data: unknown;
+    try {
+      data = text ? JSON.parse(text) : null;
+    } catch {
+      data = text;
+    }
+
+    if (!response.ok) {
+      const record = data && typeof data === 'object'
+        ? data as { message?: string | string[]; error?: string }
+        : {};
+      const message = Array.isArray(record.message)
+        ? record.message.join(', ')
+        : record.message ?? record.error;
+      throw new Error(message || `Request failed (${response.status}).`);
+    }
+    return data;
+  }, []);
+
+  const loadDashboard = useCallback(async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const params = new URLSearchParams({ page: '1', limit: '20' });
+      if (appliedSearch.trim()) params.set('search', appliedSearch.trim());
+      if (appliedStatus) params.set('status', appliedStatus);
+
+      const [overviewData, applicationData] = await Promise.all([
+        request('/placements/overview'),
+        request(`/placements/applications?${params.toString()}`),
+      ]);
+
+      setOverview(overviewData as Overview);
+      const result = applicationData as { items?: Application[] };
+      setApplications(Array.isArray(result?.items) ? result.items : []);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to load placement data.');
+    } finally {
+      setLoading(false);
+    }
+  }, [appliedSearch, appliedStatus, request]);
+
+  useEffect(() => {
+    void loadDashboard();
+  }, [loadDashboard]);
+
+  const refreshSelected = async (id: string) => {
+    const data = await request(`/placements/applications/${id}`);
+    setSelected(data as Application);
+    await loadDashboard();
+  };
+
+  const openDetails = async (application: Application) => {
+    setActionError('');
+    setEditing(false);
+    setSelected(application);
+    try {
+      const data = await request(`/placements/applications/${application.id}`);
+      setSelected(data as Application);
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Could not load application details.');
+    }
+  };
+
+  const startEdit = () => {
+    if (!selected) return;
+    setForm({
+      candidateId: selected.candidateId ?? '',
+      companyName: selected.companyName ?? '',
+      jobTitle: selected.jobTitle ?? '',
+      jobLocation: selected.jobLocation ?? '',
+      employmentType: selected.employmentType ?? '',
+      jobDescription: selected.jobDescription ?? '',
+      source: selected.source ?? '',
+      notes: selected.notes ?? '',
+      status: selected.status ?? 'DRAFT',
+      appliedAt: dateInput(selected.appliedAt),
+    });
+    setEditing(true);
+    setActionError('');
+  };
+
+  const submitApplication = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setSaving(true);
+    setActionError('');
+    try {
+      const payload = {
+        ...form,
+        appliedAt: form.appliedAt || null,
+      };
+      const created = await request('/placements/applications', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }) as Application;
+
+      setShowCreate(false);
+      setForm(EMPTY_FORM);
+      setNotice('Application created successfully.');
+      await loadDashboard();
+      if (created?.id) await openDetails(created);
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Could not create application.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const saveApplication = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!selected) return;
+    setSaving(true);
+    setActionError('');
+    try {
+      await request(`/placements/applications/${selected.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          companyName: form.companyName,
+          jobTitle: form.jobTitle,
+          jobLocation: form.jobLocation || null,
+          employmentType: form.employmentType || null,
+          jobDescription: form.jobDescription || null,
+          source: form.source || null,
+          notes: form.notes || null,
+          status: form.status,
+          appliedAt: form.appliedAt || null,
+        }),
+      });
+      setEditing(false);
+      setNotice('Application updated successfully.');
+      await refreshSelected(selected.id);
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Could not update application.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const updatePipelineStage = async (stage: string, note: string) => {
+    if (!selected) return;
+    setSaving(true);
+    setActionError('');
+    try {
+      await request(`/placements/applications/${selected.id}/pipeline`, {
+        method: 'PATCH',
+        body: JSON.stringify({ stage, note: note.trim() || undefined }),
+      });
+      setNotice(`Pipeline stage updated to ${pretty(stage)}.`);
+      await refreshSelected(selected.id);
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Could not update pipeline stage.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const scheduleInterview = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!selected) return;
+    setSaving(true);
+    setActionError('');
+    try {
+      await request(`/placements/applications/${selected.id}/interviews`, {
+        method: 'POST',
+        body: JSON.stringify({
+          ...interviewForm,
+          round: Number(interviewForm.round),
+          durationMins: interviewForm.durationMins
+            ? Number(interviewForm.durationMins)
+            : null,
+          scheduledAt: new Date(interviewForm.scheduledAt).toISOString(),
+        }),
+      });
+      setInterviewForm({
+        round: String((selected.interviews?.length ?? 0) + 2),
+        title: '',
+        scheduledAt: '',
+        durationMins: '60',
+        mode: 'ONLINE',
+        meetingLink: '',
+        interviewer: '',
+      });
+      setNotice('Interview scheduled successfully.');
+      await refreshSelected(selected.id);
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Could not schedule interview.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const updateInterview = async (
+    interview: Interview,
+    changes: Partial<Interview>,
+  ) => {
+    if (!selected) return;
+    setSaving(true);
+    setActionError('');
+    try {
+      await request(`/placements/interviews/${interview.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(changes),
+      });
+      setNotice('Interview updated successfully.');
+      await refreshSelected(selected.id);
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Could not update interview.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const createOffer = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!selected) return;
+    setSaving(true);
+    setActionError('');
+    try {
+      await request(`/placements/applications/${selected.id}/offer`, {
+        method: 'POST',
+        body: JSON.stringify({
+          compensation: offerForm.compensation
+            ? Number(offerForm.compensation)
+            : null,
+          currency: offerForm.currency,
+          offeredAt: offerForm.offeredAt || null,
+          expiresAt: offerForm.expiresAt || null,
+          joiningDate: offerForm.joiningDate || null,
+          notes: offerForm.notes || null,
+        }),
+      });
+      setNotice('Offer created successfully.');
+      await refreshSelected(selected.id);
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Could not create offer.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const updateOffer = async (offer: Offer, changes: Partial<Offer>) => {
+    if (!selected) return;
+    setSaving(true);
+    setActionError('');
+    try {
+      await request(`/placements/offers/${offer.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(changes),
+      });
+      setNotice('Offer updated successfully.');
+      await refreshSelected(selected.id);
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : 'Could not update offer.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const visibleApplications = applications.filter((application) =>
+    !pipelineStageFilter || application.pipelineStage === pipelineStageFilter
+  );
+
+  const metricCards = [
+    ...Object.entries(overview?.applicationCounts ?? {}).map(([key, value]) => [
+      `Applications · ${pretty(key)}`, String(value),
+    ]),
+    ['Scheduled interviews', String(overview?.scheduledInterviewCount ?? 0)],
+    ...Object.entries(overview?.offerCounts ?? {}).map(([key, value]) => [
+      `Offers · ${pretty(key)}`, String(value),
+    ]),
+  ];
+
+  const closeDetails = () => {
+    setSelected(null);
+    setEditing(false);
+    setActionError('');
+  };
+
+
+  const [readinessItems, setReadinessItems] = useState<ReadinessItem[]>([]);
+  const [readinessLoading, setReadinessLoading] = useState(false);
+  const [readinessError, setReadinessError] = useState("");
+  const [readinessSearch, setReadinessSearch] = useState("");
+  const [readinessDecisionFilter, setReadinessDecisionFilter] = useState("");
+  const [selectedReadiness, setSelectedReadiness] = useState<ReadinessItem | null>(null);
+  const [readinessNotes, setReadinessNotes] = useState("");
+  const [readinessSaving, setReadinessSaving] = useState(false);
+
+  const loadReadiness = useCallback(async () => {
+    setReadinessLoading(true);
+    setReadinessError("");
+    try {
+      const response = await fetch(`${API_BASE}/placements/readiness`, {
+        headers: {
+          Authorization: `Bearer ${token()}`,
+          "Content-Type": "application/json",
+        },
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload?.message || "Unable to load readiness records.");
+      }
+      const items: ReadinessItem[] = Array.isArray(payload?.items) ? payload.items : [];
+      setReadinessItems(items);
+      setSelectedReadiness((current) =>
+        current ? items.find((item) => item.candidateId === current.candidateId) ?? null : null
+      );
+    } catch (error) {
+      setReadinessError(error instanceof Error ? error.message : "Unable to load readiness records.");
+    } finally {
+      setReadinessLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadReadiness();
+  }, [loadReadiness]);
+
+  const saveReadinessReview = async (decision: "APPROVED" | "NEEDS_WORK" | "PENDING") => {
+    if (!selectedReadiness || (decision === "APPROVED" && !selectedReadiness.allEvidenceComplete)) return;
+    setReadinessSaving(true);
+    setReadinessError("");
+    try {
+      const response = await fetch(
+        `${API_BASE}/placements/readiness/${encodeURIComponent(selectedReadiness.candidateId)}/review`,
+        {
+          method: "PATCH",
+          headers: {
+            Authorization: `Bearer ${token()}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ decision, notes: readinessNotes }),
+        },
+      );
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload?.message || "Unable to save readiness review.");
+      }
+      await loadReadiness();
+    } catch (error) {
+      setReadinessError(error instanceof Error ? error.message : "Unable to save readiness review.");
+    } finally {
+      setReadinessSaving(false);
+    }
+  };
+
+  const filteredReadinessItems = readinessItems.filter((item) =>
+    item.candidateId.toLowerCase().includes(readinessSearch.trim().toLowerCase()) &&
+    (!readinessDecisionFilter || item.decision === readinessDecisionFilter)
+  );
+
+  const readinessCompleteCount = readinessItems.filter((item) => item.allEvidenceComplete).length;
+  const readinessPendingCount = readinessItems.filter((item) => item.decision === "PENDING").length;
+  const readinessApprovedCount = readinessItems.filter((item) => item.decision === "APPROVED").length;
+
+  const activeApplicationCount = ["APPLIED", "SHORTLISTED", "INTERVIEW", "OFFERED"]
+    .reduce((total, status) => total + (overview?.applicationCounts?.[status] ?? 0), 0);
+
+  const offersReceivedCount = Object.values(overview?.offerCounts ?? {})
+    .reduce((total, count) => total + count, 0);
+
+  const analyticsCards = [
+    { label: "Total candidates", value: readinessItems.length, detail: "Candidates with readiness records" },
+    { label: "Readiness approved", value: readinessApprovedCount, detail: "Human-approved candidates" },
+    { label: "Active applications", value: activeApplicationCount, detail: "Applied, shortlisted, interview or offered" },
+    { label: "Offers received", value: offersReceivedCount, detail: "Recorded offers across all statuses" },
+  ];
+
+  return (
+    <main className="min-h-screen bg-slate-950 px-4 py-6 text-slate-100 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl space-y-6">
+        <header className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+          <div>
+            <div className="mb-2 text-sm text-slate-400">
+              <Link href="/admin" className="hover:text-indigo-300">Admin</Link>
+              <span className="mx-2">/</span>
+              <span>Placements</span>
+            </div>
+            <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+              Placement Management
+            </h1>
+            <p className="mt-1 text-sm text-slate-300">
+              Track candidate applications, interviews and offers.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="secondary" onClick={() => void loadDashboard()} disabled={loading}>
+              {loading ? 'Refreshing…' : 'Refresh data'}
+            </Button>
+            <Button onClick={() => {
+              setForm(EMPTY_FORM);
+              setActionError('');
+              setShowCreate(true);
+            }}>
+              + New application
+            </Button>
+          </div>
+        </header>
+
+        {error && (
+          <div role="alert" className="rounded-xl border border-rose-800 bg-rose-950/40 p-4 text-sm text-rose-300">
+            <p className="font-semibold">Could not load placement data</p>
+            <p className="mt-1">{error}</p>
+            <Link href="/login" className="mt-2 inline-block font-semibold underline">
+              Go to login
+            </Link>
+          </div>
+        )}
+        {notice && (
+          <div role="status" className="flex items-center justify-between rounded-xl border border-emerald-800 bg-emerald-950/40 p-3 text-sm text-emerald-300">
+            {notice}
+            <button onClick={() => setNotice('')} aria-label="Dismiss notice">✕</button>
+          </div>
+        )}
+
+        <section aria-label="Placement analytics" className="space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h2 className="text-lg font-semibold">Placement Analytics</h2>
+              <p className="mt-1 text-sm text-slate-400">
+                Candidate readiness and placement pipeline at a glance.
+              </p>
+            </div>
+            <span className="text-xs text-slate-400">
+              {loading || readinessLoading ? "Updating metrics…" : "Based on current API data"}
+            </span>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {analyticsCards.map((card) => (
+              <article
+                key={card.label}
+                className="rounded-xl border border-slate-800 bg-slate-900 p-5 shadow-sm"
+              >
+                <p className="text-sm font-medium text-slate-400">{card.label}</p>
+                <p className="mt-3 text-3xl font-bold tracking-tight text-slate-100">
+                  {loading || readinessLoading ? "—" : card.value.toLocaleString()}
+                </p>
+                <p className="mt-2 text-xs text-slate-400">{card.detail}</p>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        <section aria-label="Placement overview">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-lg font-semibold">Overview</h2>
+            <span className="text-xs text-slate-400">Live API data</span>
+          </div>
+          {metricCards.length ? (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {metricCards.map(([label, value]) => (
+                <article key={label} className="rounded-xl border border-slate-800 bg-slate-900 p-5 shadow-sm">
+                  <p className="text-sm font-medium text-slate-400">{label}</p>
+                  <p className="mt-3 text-3xl font-bold tracking-tight">{value}</p>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-xl border border-dashed border-slate-700 bg-slate-900 p-6 text-sm text-slate-400">
+              {loading ? 'Loading overview…' : 'No placement metrics available yet.'}
+            </div>
+          )}
+        </section>
+
+        <PlacementPipelineTracker
+          applications={applications}
+          pipelineStageCounts={overview?.pipelineStageCounts}
+          selectedStage={pipelineStageFilter}
+          onSelectStage={setPipelineStageFilter}
+        />
+
+        <section className="overflow-hidden rounded-xl border border-slate-800 bg-slate-900 shadow-sm">
+          <div className="flex flex-col gap-3 border-b border-slate-800 p-5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold">Applications</h2>
+              <p className="mt-1 text-sm text-slate-400">Search, filter and manage candidate applications.</p>
+            </div>
+            <span className="rounded-full bg-slate-800 px-3 py-1 text-sm font-medium text-slate-300">
+              {visibleApplications.length} shown
+            </span>
+          </div>
+
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              setAppliedSearch(search);
+              setAppliedStatus(statusFilter);
+            }}
+            className="flex flex-col gap-3 border-b border-slate-800 p-5 md:flex-row"
+          >
+            <input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Search candidate ID, company or job title"
+              aria-label="Search applications"
+              className={`${inputClass} min-w-0 flex-1`}
+            />
+            <select
+              value={statusFilter}
+              onChange={(event) => setStatusFilter(event.target.value)}
+              aria-label="Filter by status"
+              className={`${inputClass} md:w-48`}
+            >
+              <option value="">All statuses</option>
+              {APPLICATION_STATUSES.map((value) => (
+                <option key={value} value={value}>{pretty(value)}</option>
+              ))}
+            </select>
+            <Button type="submit">Apply filters</Button>
+          </form>
+
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[780px] text-left text-sm">
+              <thead className="bg-slate-800/70 text-xs uppercase tracking-wide text-slate-400">
+                <tr>
+                  {['Candidate ID', 'Company', 'Job title', 'Application status', 'Pipeline stage', 'Updated', 'Application'].map((heading) => (
+                    <th key={heading} className="px-5 py-3 font-semibold">{heading}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {visibleApplications.map((application) => (
+                  <tr key={application.id} className="hover:bg-slate-950">
+                    <td className="px-5 py-4 font-medium">{application.candidateId}</td>
+                    <td className="px-5 py-4">{application.companyName}</td>
+                    <td className="px-5 py-4">{application.jobTitle}</td>
+                    <td className="px-5 py-4">
+                      <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${statusStyle(application.status)}`}>
+                        {pretty(application.status)}
+                      </span>
+                    </td>
+                    <td className="px-5 py-4">
+                      <span className="inline-flex rounded-full bg-indigo-950/50 px-2.5 py-1 text-xs font-semibold text-indigo-200">
+                        {pretty(application.pipelineStage ?? 'PROFILE_REVIEW')}
+                      </span>
+                    </td>
+                    <td className="px-5 py-4 text-slate-300">
+                      {dateText(application.updatedAt ?? application.createdAt)}
+                    </td>
+                    <td className="px-5 py-4">
+                      <button
+                        onClick={() => void openDetails(application)}
+                        className="font-semibold text-indigo-300 hover:underline"
+                      >
+                        View details →
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                {!loading && !error && visibleApplications.length === 0 && (
+                  <tr>
+                    <td colSpan={7} className="px-5 py-12 text-center">
+                      <p className="font-medium text-slate-200">No applications found</p>
+                      <p className="mt-1 text-sm text-slate-400">
+                        Create an application to start tracking a candidate.
+                      </p>
+                      <div className="mt-4">
+                        <Button onClick={() => setShowCreate(true)}>+ New application</Button>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+                {loading && applications.length === 0 && (
+                  <tr><td colSpan={7} className="px-5 py-12 text-center text-slate-400">Loading applications…</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+          <div className="border-t border-slate-800 px-5 py-3 text-xs text-slate-400">
+            Showing up to 20 applications per request.
+          </div>
+        </section>
+
+
+        <section className="overflow-hidden rounded-xl border border-slate-800 bg-slate-900 shadow-sm">
+          <div className="flex flex-col gap-3 border-b border-slate-800 p-5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold">Placement readiness</h2>
+              <p className="mt-1 text-sm text-slate-400">
+                Review candidate evidence and record a human readiness decision.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => void loadReadiness()}
+              disabled={readinessLoading}
+              className="rounded-lg border border-slate-700 px-3 py-2 text-sm font-semibold hover:bg-slate-950 disabled:opacity-50"
+            >
+              {readinessLoading ? "Refreshing…" : "Refresh"}
+            </button>
+          </div>
+
+          {readinessError && (
+            <p role="alert" className="mx-5 mt-5 rounded-lg bg-rose-950/40 p-3 text-sm text-rose-300">
+              {readinessError}
+            </p>
+          )}
+
+          <div className="grid gap-3 p-5 sm:grid-cols-2 xl:grid-cols-4">
+            {[
+              ["Candidates", readinessItems.length],
+              ["Evidence complete", readinessCompleteCount],
+              ["Pending review", readinessPendingCount],
+              ["Human-approved", readinessApprovedCount],
+            ].map(([label, value]) => (
+              <article key={label} className="rounded-xl border border-slate-800 bg-slate-950 p-4">
+                <p className="text-sm font-medium text-slate-400">{label}</p>
+                <p className="mt-2 text-2xl font-bold tabular-nums">{value}</p>
+              </article>
+            ))}
+          </div>
+
+          <div className="flex flex-col gap-3 border-y border-slate-800 p-5 sm:flex-row">
+            <input
+              value={readinessSearch}
+              onChange={(event) => setReadinessSearch(event.target.value)}
+              placeholder="Search candidate ID"
+              aria-label="Search readiness candidates"
+              className={`${inputClass} min-w-0 flex-1`}
+            />
+            <select
+              value={readinessDecisionFilter}
+              onChange={(event) => setReadinessDecisionFilter(event.target.value)}
+              aria-label="Filter by readiness decision"
+              className={`${inputClass} sm:w-56`}
+            >
+              <option value="">All decisions</option>
+              <option value="PENDING">Pending</option>
+              <option value="APPROVED">Approved</option>
+              <option value="NEEDS_WORK">Needs work</option>
+            </select>
+          </div>
+
+          {readinessLoading && readinessItems.length === 0 ? (
+            <p className="p-6 text-sm text-slate-400">Loading readiness records…</p>
+          ) : filteredReadinessItems.length === 0 ? (
+            <p className="p-6 text-sm text-slate-400">No readiness records match these filters.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[650px] text-left text-sm">
+                <thead className="bg-slate-800/70 text-xs uppercase tracking-wide text-slate-400">
+                  <tr>
+                    <th className="px-5 py-3 font-semibold">Candidate ID</th>
+                    <th className="px-5 py-3 font-semibold">Evidence</th>
+                    <th className="px-5 py-3 font-semibold">Decision</th>
+                    <th className="px-5 py-3 font-semibold">Reviewed</th>
+                    <th className="px-5 py-3 font-semibold">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filteredReadinessItems.map((item) => (
+                    <tr key={item.candidateId} className="hover:bg-slate-950">
+                      <td className="px-5 py-4 font-medium">{item.candidateId}</td>
+                      <td className="px-5 py-4">
+                        <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                          item.allEvidenceComplete
+                            ? "bg-emerald-950/40 text-emerald-700"
+                            : "bg-amber-50 text-amber-700"
+                        }`}>
+                          {item.allEvidenceComplete ? "Complete" : "Incomplete"}
+                        </span>
+                      </td>
+                      <td className="px-5 py-4">{pretty(item.decision)}</td>
+                      <td className="px-5 py-4 text-slate-300">{dateText(item.review?.reviewedAt)}</td>
+                      <td className="px-5 py-4">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedReadiness(item);
+                            setReadinessNotes(item.review?.notes ?? "");
+                          }}
+                          className="font-semibold text-indigo-300 hover:underline"
+                        >
+                          Review evidence →
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          <div className="border-t border-slate-800 px-5 py-3 text-xs text-slate-400">
+            Readiness review is separate from job-application interviews and requires a human decision.
+          </div>
+        </section>
+
+        {selectedReadiness && (
+          <div className="fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto bg-slate-950/50 p-4 sm:items-center">
+            <section
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="readiness-dialog-title"
+              className="my-4 w-full max-w-4xl rounded-2xl bg-slate-900 shadow-2xl"
+            >
+              <div className="flex items-center justify-between border-b border-slate-800 px-6 py-4">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Readiness evidence</p>
+                  <h2 id="readiness-dialog-title" className="text-xl font-bold">
+                    Candidate {selectedReadiness.candidateId}
+                  </h2>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedReadiness(null)}
+                  className="rounded-lg p-2 text-slate-400 hover:bg-slate-800"
+                  aria-label="Close readiness review"
+                >✕</button>
+              </div>
+
+              <div className="max-h-[70vh] space-y-6 overflow-y-auto p-6">
+                <div className="flex flex-wrap gap-2">
+                  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                    selectedReadiness.allEvidenceComplete
+                      ? "bg-emerald-950/40 text-emerald-700"
+                      : "bg-amber-50 text-amber-700"
+                  }`}>
+                    {selectedReadiness.allEvidenceComplete ? "Evidence complete" : "Evidence incomplete"}
+                  </span>
+                  <span className="rounded-full bg-slate-800 px-3 py-1 text-xs font-semibold text-slate-200">
+                    Current decision: {pretty(selectedReadiness.decision)}
+                  </span>
+                </div>
+
+                <section>
+                  <h3 className="mb-3 font-semibold">Required evidence checklist</h3>
+                  <div className="space-y-2">
+                    {[
+                      {
+                        label: "Three completed expert mock interviews",
+                        complete: selectedReadiness.checks.expertMocks.complete,
+                        detail: `${selectedReadiness.checks.expertMocks.completedCount} / ${selectedReadiness.checks.expertMocks.requiredCount} completed`,
+                      },
+                      {
+                        label: "Final expert mock score ≥ 8/10",
+                        complete: selectedReadiness.checks.finalExpertMock.complete,
+                        detail: selectedReadiness.checks.finalExpertMock.score == null
+                          ? "No qualifying final mock score recorded"
+                          : `${selectedReadiness.checks.finalExpertMock.score} / ${selectedReadiness.checks.finalExpertMock.maxScore ?? "—"}`,
+                      },
+                      {
+                        label: "At least one expert-approved project",
+                        complete: selectedReadiness.checks.expertApprovedProject.complete,
+                        detail: `${selectedReadiness.checks.expertApprovedProject.approvedCount} approved`,
+                      },
+                      {
+                        label: "Technical assessment evidence ≥ 80%",
+                        complete: selectedReadiness.checks.technicalAssessment.complete,
+                        detail: selectedReadiness.checks.technicalAssessment.score == null
+                          ? "No qualifying assessment score recorded"
+                          : `${selectedReadiness.checks.technicalAssessment.score} / ${selectedReadiness.checks.technicalAssessment.maxScore ?? "—"}`,
+                      },
+                    ].map((check) => (
+                      <article key={check.label} className="flex items-start gap-3 rounded-xl border border-slate-800 p-3">
+                        <span className={`mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
+                          check.complete ? "bg-emerald-100 text-emerald-700" : "bg-amber-950/50 text-amber-700"
+                        }`}>{check.complete ? "✓" : "!"}</span>
+                        <div>
+                          <p className="text-sm font-medium">{check.label}</p>
+                          <p className="mt-1 text-xs text-slate-400">{check.detail}</p>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                </section>
+
+                <section>
+                  <h3 className="mb-3 font-semibold">Expert mock interviews ({selectedReadiness.expertMockInterviews.length})</h3>
+                  {selectedReadiness.expertMockInterviews.length ? (
+                    <div className="space-y-2">
+                      {selectedReadiness.expertMockInterviews.map((mock) => (
+                        <article key={mock.id} className="rounded-xl border border-slate-800 p-3">
+                          <div className="flex flex-wrap justify-between gap-2">
+                            <p className="text-sm font-medium">{mock.isFinal ? "Final expert mock" : `Expert mock ${mock.sequence}`}</p>
+                            <span className="text-xs text-slate-400">{pretty(mock.status)}</span>
+                          </div>
+                          <p className="mt-1 text-xs text-slate-300">
+                            Score: {mock.score ?? "—"} / {mock.maxScore ?? "—"} · Reviewer: {mock.reviewerName || "—"}
+                          </p>
+                          {mock.feedback && <p className="mt-2 whitespace-pre-wrap text-sm text-slate-300">{mock.feedback}</p>}
+                        </article>
+                      ))}
+                    </div>
+                  ) : <p className="rounded-lg bg-slate-950 p-3 text-sm text-slate-400">No expert mocks recorded.</p>}
+                </section>
+
+                <section>
+                  <h3 className="mb-3 font-semibold">Project reviews ({selectedReadiness.projectReviews.length})</h3>
+                  {selectedReadiness.projectReviews.length ? (
+                    <div className="space-y-2">
+                      {selectedReadiness.projectReviews.map((project) => (
+                        <article key={project.id} className="rounded-xl border border-slate-800 p-3">
+                          <div className="flex flex-wrap justify-between gap-2">
+                            <p className="text-sm font-medium">{project.projectName}</p>
+                            <span className="text-xs text-slate-400">{pretty(project.status)}</span>
+                          </div>
+                          <p className="mt-1 text-xs text-slate-300">
+                            Expert approved: {project.expertApproved ? "Yes" : "No"} · Reviewer: {project.reviewerName || "—"}
+                          </p>
+                          {project.mentorFeedback && <p className="mt-2 whitespace-pre-wrap text-sm text-slate-300">{project.mentorFeedback}</p>}
+                        </article>
+                      ))}
+                    </div>
+                  ) : <p className="rounded-lg bg-slate-950 p-3 text-sm text-slate-400">No project reviews recorded.</p>}
+                </section>
+
+                <section>
+                  <h3 className="mb-2 font-semibold">Technical assessment records</h3>
+                  <p className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-300">
+                    This is legacy technical-assessment evidence. The API does not verify the blueprint’s formal 15-question assessment.
+                  </p>
+                  {selectedReadiness.technicalAssessments.length ? (
+                    <div className="space-y-2">
+                      {selectedReadiness.technicalAssessments.map((assessment) => (
+                        <article key={assessment.id} className="rounded-xl border border-slate-800 p-3">
+                          <p className="text-sm font-medium">Technical assessment</p>
+                          <p className="mt-1 text-xs text-slate-300">
+                            {pretty(assessment.status)} · Score: {assessment.score ?? "—"} / {assessment.maxScore}
+                          </p>
+                        </article>
+                      ))}
+                    </div>
+                  ) : <p className="rounded-lg bg-slate-950 p-3 text-sm text-slate-400">No completed technical assessments recorded.</p>}
+                </section>
+
+                <section>
+                  <label htmlFor="readiness-notes" className="mb-2 block text-sm font-semibold">Human review notes</label>
+                  <textarea
+                    id="readiness-notes"
+                    rows={4}
+                    value={readinessNotes}
+                    onChange={(event) => setReadinessNotes(event.target.value)}
+                    className={inputClass}
+                    placeholder="Record review outcome, gaps, or next steps…"
+                  />
+                </section>
+              </div>
+
+              <div className="flex flex-col-reverse gap-2 border-t border-slate-800 px-6 py-4 sm:flex-row sm:justify-end">
+                <Button variant="secondary" onClick={() => void saveReadinessReview("PENDING")} disabled={readinessSaving}>
+                  Save as pending
+                </Button>
+                <Button variant="secondary" onClick={() => void saveReadinessReview("NEEDS_WORK")} disabled={readinessSaving}>
+                  Mark needs work
+                </Button>
+                <Button
+                  onClick={() => void saveReadinessReview("APPROVED")}
+                  disabled={readinessSaving || !selectedReadiness.allEvidenceComplete}
+                >
+                  {readinessSaving ? "Saving…" : "Approve readiness"}
+                </Button>
+              </div>
+            </section>
+          </div>
+        )}
+
+        <section className="grid gap-4 md:grid-cols-2">
+          <article className="rounded-xl border border-slate-800 bg-slate-900 p-5 shadow-sm">
+            <h2 className="font-semibold">Interview management</h2>
+            <p className="mt-1 text-sm text-slate-300">Schedule interviews and track rounds, outcomes and feedback.</p>
+            <p className="mt-3 text-xs text-slate-400">Open an application to manage its interviews.</p>
+          </article>
+          <article className="rounded-xl border border-slate-800 bg-slate-900 p-5 shadow-sm">
+            <h2 className="font-semibold">Offer management</h2>
+            <p className="mt-1 text-sm text-slate-300">Create offers and manage compensation, dates and statuses.</p>
+            <p className="mt-3 text-xs text-slate-400">Open an application to manage its offer.</p>
+          </article>
+        </section>
+      </div>
+
+      {showCreate && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/50 p-4 sm:items-center">
+          <section role="dialog" aria-modal="true" aria-labelledby="create-title" className="my-6 w-full max-w-3xl rounded-2xl bg-slate-900 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-slate-800 px-6 py-4">
+              <div>
+                <h2 id="create-title" className="text-xl font-bold">New placement application</h2>
+                <p className="mt-1 text-sm text-slate-400">Enter the candidate and job details.</p>
+              </div>
+              <button onClick={() => setShowCreate(false)} className="rounded-lg p-2 text-slate-400 hover:bg-slate-800" aria-label="Close">✕</button>
+            </div>
+            <form onSubmit={submitApplication} className="space-y-5 p-6">
+              {actionError && <p role="alert" className="rounded-lg bg-rose-950/40 p-3 text-sm text-rose-300">{actionError}</p>}
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Candidate ID *">
+                  <input required value={form.candidateId} onChange={(e) => setForm({ ...form, candidateId: e.target.value })} className={inputClass} placeholder="Existing candidate ID" />
+                </Field>
+                <Field label="Company name *">
+                  <input required value={form.companyName} onChange={(e) => setForm({ ...form, companyName: e.target.value })} className={inputClass} placeholder="Company" />
+                </Field>
+                <Field label="Job title *">
+                  <input required value={form.jobTitle} onChange={(e) => setForm({ ...form, jobTitle: e.target.value })} className={inputClass} placeholder="e.g. Junior Python Developer" />
+                </Field>
+                <Field label="Job location">
+                  <input value={form.jobLocation} onChange={(e) => setForm({ ...form, jobLocation: e.target.value })} className={inputClass} placeholder="City / Remote" />
+                </Field>
+                <Field label="Employment type">
+                  <select value={form.employmentType} onChange={(e) => setForm({ ...form, employmentType: e.target.value })} className={inputClass}>
+                    <option value="">Select type</option>
+                    {['FULL_TIME', 'PART_TIME', 'CONTRACT', 'INTERNSHIP', 'REMOTE'].map((v) => <option key={v} value={v}>{pretty(v)}</option>)}
+                  </select>
+                </Field>
+                <Field label="Application status">
+                  <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })} className={inputClass}>
+                    {APPLICATION_STATUSES.map((v) => <option key={v} value={v}>{pretty(v)}</option>)}
+                  </select>
+                </Field>
+                <Field label="Source">
+                  <input value={form.source} onChange={(e) => setForm({ ...form, source: e.target.value })} className={inputClass} placeholder="Referral, job portal, campus…" />
+                </Field>
+                <Field label="Applied date">
+                  <input type="date" value={form.appliedAt} onChange={(e) => setForm({ ...form, appliedAt: e.target.value })} className={inputClass} />
+                </Field>
+              </div>
+              <Field label="Job description">
+                <textarea rows={3} value={form.jobDescription} onChange={(e) => setForm({ ...form, jobDescription: e.target.value })} className={inputClass} />
+              </Field>
+              <Field label="Internal notes">
+                <textarea rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className={inputClass} placeholder="Additional context for the placement team" />
+              </Field>
+              <div className="flex flex-col-reverse justify-end gap-2 border-t border-slate-100 pt-4 sm:flex-row">
+                <Button variant="secondary" onClick={() => setShowCreate(false)}>Cancel</Button>
+                <Button type="submit" disabled={saving}>{saving ? 'Creating…' : 'Create application'}</Button>
+              </div>
+            </form>
+          </section>
+        </div>
+      )}
+
+      {selected && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-950/50 p-4">
+          <section role="dialog" aria-modal="true" aria-labelledby="detail-title" className="my-4 w-full max-w-5xl rounded-2xl bg-slate-900 shadow-2xl">
+            <div className="sticky top-0 z-10 flex items-center justify-between rounded-t-2xl border-b border-slate-800 bg-slate-900 px-6 py-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Application details</p>
+                <h2 id="detail-title" className="text-xl font-bold">{selected.companyName} · {selected.jobTitle}</h2>
+                <p className="mt-1 text-xs text-slate-400">Candidate: {selected.candidateId}</p>
+              </div>
+              <button onClick={closeDetails} className="rounded-lg p-2 text-slate-400 hover:bg-slate-800" aria-label="Close details">✕</button>
+            </div>
+
+            <div className="space-y-7 p-6">
+              {actionError && <p role="alert" className="rounded-lg bg-rose-950/40 p-3 text-sm text-rose-300">{actionError}</p>}
+
+              <section>
+                <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                  <h3 className="text-lg font-semibold">Application information</h3>
+                  {!editing && <Button variant="secondary" onClick={startEdit}>Edit application</Button>}
+                </div>
+                {editing ? (
+                  <form onSubmit={saveApplication} className="space-y-4">
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <Field label="Company name *"><input required className={inputClass} value={form.companyName} onChange={(e) => setForm({ ...form, companyName: e.target.value })} /></Field>
+                      <Field label="Job title *"><input required className={inputClass} value={form.jobTitle} onChange={(e) => setForm({ ...form, jobTitle: e.target.value })} /></Field>
+                      <Field label="Location"><input className={inputClass} value={form.jobLocation} onChange={(e) => setForm({ ...form, jobLocation: e.target.value })} /></Field>
+                      <Field label="Employment type"><input className={inputClass} value={form.employmentType} onChange={(e) => setForm({ ...form, employmentType: e.target.value })} /></Field>
+                      <Field label="Status"><select className={inputClass} value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>{APPLICATION_STATUSES.map((v) => <option key={v} value={v}>{pretty(v)}</option>)}</select></Field>
+                      <Field label="Applied date"><input type="date" className={inputClass} value={form.appliedAt} onChange={(e) => setForm({ ...form, appliedAt: e.target.value })} /></Field>
+                      <Field label="Source"><input className={inputClass} value={form.source} onChange={(e) => setForm({ ...form, source: e.target.value })} /></Field>
+                    </div>
+                    <Field label="Job description"><textarea rows={3} className={inputClass} value={form.jobDescription} onChange={(e) => setForm({ ...form, jobDescription: e.target.value })} /></Field>
+                    <Field label="Notes"><textarea rows={3} className={inputClass} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} /></Field>
+                    <div className="flex flex-wrap justify-end gap-2">
+                      <Button variant="secondary" onClick={() => setEditing(false)}>Cancel</Button>
+                      <Button type="submit" disabled={saving}>{saving ? 'Saving…' : 'Save changes'}</Button>
+                    </div>
+                  </form>
+                ) : (
+                  <div className="grid gap-4 rounded-xl border border-slate-800 p-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {[
+                      ['Candidate ID', selected.candidateId],
+                      ['Company', selected.companyName],
+                      ['Job title', selected.jobTitle],
+                      ['Location', selected.jobLocation],
+                      ['Employment type', pretty(selected.employmentType)],
+                      ['Status', pretty(selected.status)],
+                      ['Source', selected.source],
+                      ['Applied date', dateText(selected.appliedAt)],
+                      ['Updated', dateText(selected.updatedAt)],
+                    ].map(([label, value]) => (
+                      <div key={label}>
+                        <p className="text-xs font-medium uppercase tracking-wide text-slate-400">{label}</p>
+                        <p className="mt-1 break-words text-sm font-medium text-slate-800">{value || '—'}</p>
+                      </div>
+                    ))}
+                    {selected.jobDescription && <div className="sm:col-span-2 lg:col-span-3"><p className="text-xs font-medium uppercase text-slate-400">Job description</p><p className="mt-1 whitespace-pre-wrap text-sm">{selected.jobDescription}</p></div>}
+                    {selected.notes && <div className="sm:col-span-2 lg:col-span-3"><p className="text-xs font-medium uppercase text-slate-400">Notes</p><p className="mt-1 whitespace-pre-wrap text-sm">{selected.notes}</p></div>}
+                  </div>
+                )}
+              </section>
+
+              <section className="border-t border-slate-800 pt-6">
+                <div className="mb-4">
+                  <h3 className="text-lg font-semibold">Placement pipeline stage</h3>
+                  <p className="mt-1 text-sm text-slate-400">
+                    This workflow stage is tracked separately from the application status.
+                    Stage changes are recorded in the audit history.
+                  </p>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
+                  <Field label="Current pipeline stage">
+                    <select
+                      className={inputClass}
+                      value={selected.pipelineStage ?? 'PROFILE_REVIEW'}
+                      disabled={saving}
+                      onChange={(event) => {
+                        const nextStage = event.target.value;
+                        const note = window.prompt(
+                          'Add an optional note for this stage change:',
+                          '',
+                        );
+                        if (note === null) return;
+                        void updatePipelineStage(nextStage, note);
+                      }}
+                    >
+                      {PIPELINE_STAGES.map((stage) => (
+                        <option key={stage} value={stage}>{pretty(stage)}</option>
+                      ))}
+                    </select>
+                  </Field>
+                  <div className="rounded-xl border border-slate-800 bg-slate-950 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+                      Current stage
+                    </p>
+                    <p className="mt-2 text-lg font-bold text-indigo-200">
+                      {pretty(selected.pipelineStage ?? 'PROFILE_REVIEW')}
+                    </p>
+                    <p className="mt-1 text-xs text-slate-400">
+                      {selected.pipelineHistory?.length ?? 0} recorded stage changes
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-5">
+                  <h4 className="mb-3 font-semibold">Stage history</h4>
+                  {selected.pipelineHistory?.length ? (
+                    <ol className="space-y-3">
+                      {selected.pipelineHistory.map((entry) => (
+                        <li key={entry.id} className="relative rounded-xl border border-slate-800 bg-slate-950 p-4">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <p className="text-sm font-semibold">
+                              {entry.fromStage ? pretty(entry.fromStage) : 'Initial stage'}
+                              {' → '}
+                              {pretty(entry.toStage)}
+                            </p>
+                            <time className="text-xs text-slate-400">
+                              {dateText(entry.createdAt)}
+                            </time>
+                          </div>
+                          {entry.note && (
+                            <p className="mt-2 whitespace-pre-wrap text-sm text-slate-300">
+                              {entry.note}
+                            </p>
+                          )}
+                          <p className="mt-2 text-xs text-slate-500">
+                            Changed by: {entry.changedByUserId || 'User not recorded'}
+                          </p>
+                        </li>
+                      ))}
+                    </ol>
+                  ) : (
+                    <p className="rounded-lg border border-dashed border-slate-700 p-4 text-sm text-slate-400">
+                      No stage changes have been recorded for this application yet.
+                    </p>
+                  )}
+                </div>
+              </section>
+
+              <section className="border-t border-slate-800 pt-6">
+                <h3 className="mb-4 text-lg font-semibold">Interviews ({selected.interviews?.length ?? 0})</h3>
+                <div className="space-y-3">
+                  {(selected.interviews ?? []).map((interview) => (
+                    <article key={interview.id} className="rounded-xl border border-slate-800 p-4">
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div>
+                          <p className="font-semibold">{interview.title || `Interview round ${interview.round ?? 1}`}</p>
+                          <p className="mt-1 text-sm text-slate-300">{dateText(interview.scheduledAt)} · {interview.durationMins ?? '—'} min · {pretty(interview.mode)}</p>
+                          {interview.interviewer && <p className="mt-1 text-sm text-slate-300">Interviewer: {interview.interviewer}</p>}
+                          {interview.meetingLink && <a className="mt-1 inline-block text-sm text-indigo-300 underline" href={interview.meetingLink} target="_blank" rel="noreferrer">Meeting link</a>}
+                          {interview.feedback && <p className="mt-2 whitespace-pre-wrap text-sm text-slate-300">Feedback: {interview.feedback}</p>}
+                        </div>
+                        <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusStyle(interview.status)}`}>{pretty(interview.status)}</span>
+                      </div>
+                      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                        <Field label="Interview status"><select className={inputClass} value={interview.status ?? 'SCHEDULED'} onChange={(e) => void updateInterview(interview, { status: e.target.value })} disabled={saving}>{INTERVIEW_STATUSES.map((v) => <option key={v} value={v}>{pretty(v)}</option>)}</select></Field>
+                        <Field label="Outcome"><select className={inputClass} value={interview.outcome ?? 'PENDING'} onChange={(e) => void updateInterview(interview, { outcome: e.target.value })} disabled={saving}>{INTERVIEW_OUTCOMES.map((v) => <option key={v} value={v}>{pretty(v)}</option>)}</select></Field>
+                        <Field label="Feedback"><input className={inputClass} defaultValue={interview.feedback ?? ''} placeholder="Feedback" onBlur={(e) => { if (e.target.value !== (interview.feedback ?? '')) void updateInterview(interview, { feedback: e.target.value }); }} disabled={saving} /></Field>
+                      </div>
+                    </article>
+                  ))}
+                  {!selected.interviews?.length && <p className="rounded-lg bg-slate-950 p-4 text-sm text-slate-400">No interviews scheduled for this application yet.</p>}
+                </div>
+
+                <form onSubmit={scheduleInterview} className="mt-4 space-y-4 rounded-xl border border-dashed border-slate-700 p-4">
+                  <h4 className="font-semibold">Schedule an interview</h4>
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    <Field label="Round"><input required min="1" type="number" className={inputClass} value={interviewForm.round} onChange={(e) => setInterviewForm({ ...interviewForm, round: e.target.value })} /></Field>
+                    <Field label="Interview title"><input className={inputClass} value={interviewForm.title} onChange={(e) => setInterviewForm({ ...interviewForm, title: e.target.value })} placeholder="Technical round" /></Field>
+                    <Field label="Scheduled at *"><input required type="datetime-local" className={inputClass} value={interviewForm.scheduledAt} onChange={(e) => setInterviewForm({ ...interviewForm, scheduledAt: e.target.value })} /></Field>
+                    <Field label="Duration (minutes)"><input min="1" max="1440" type="number" className={inputClass} value={interviewForm.durationMins} onChange={(e) => setInterviewForm({ ...interviewForm, durationMins: e.target.value })} /></Field>
+                    <Field label="Mode"><select className={inputClass} value={interviewForm.mode} onChange={(e) => setInterviewForm({ ...interviewForm, mode: e.target.value })}><option value="ONLINE">Online</option><option value="ONSITE">Onsite</option><option value="PHONE">Phone</option></select></Field>
+                    <Field label="Interviewer"><input className={inputClass} value={interviewForm.interviewer} onChange={(e) => setInterviewForm({ ...interviewForm, interviewer: e.target.value })} /></Field>
+                    <div className="sm:col-span-2 lg:col-span-3"><Field label="Meeting link"><input type="url" className={inputClass} value={interviewForm.meetingLink} onChange={(e) => setInterviewForm({ ...interviewForm, meetingLink: e.target.value })} placeholder="https://…" /></Field></div>
+                  </div>
+                  <div className="flex justify-end"><Button type="submit" disabled={saving}>{saving ? 'Scheduling…' : 'Schedule interview'}</Button></div>
+                </form>
+              </section>
+
+              <section className="border-t border-slate-800 pt-6">
+                <h3 className="mb-4 text-lg font-semibold">Offer management</h3>
+                {selected.offer ? (
+                  <div className="space-y-4 rounded-xl border border-slate-800 p-4">
+                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                      <div><p className="text-xs uppercase text-slate-400">Status</p><span className={`mt-1 inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${statusStyle(selected.offer.status)}`}>{pretty(selected.offer.status)}</span></div>
+                      <div><p className="text-xs uppercase text-slate-400">Compensation</p><p className="mt-1 font-semibold">{selected.offer.compensation == null ? '—' : `${selected.offer.currency ?? 'INR'} ${selected.offer.compensation.toLocaleString()}`}</p></div>
+                      <div><p className="text-xs uppercase text-slate-400">Offered date</p><p className="mt-1 text-sm">{dateText(selected.offer.offeredAt)}</p></div>
+                      <div><p className="text-xs uppercase text-slate-400">Expiry date</p><p className="mt-1 text-sm">{dateText(selected.offer.expiresAt)}</p></div>
+                      <div><p className="text-xs uppercase text-slate-400">Joining date</p><p className="mt-1 text-sm">{dateText(selected.offer.joiningDate)}</p></div>
+                      <div><p className="text-xs uppercase text-slate-400">Notes</p><p className="mt-1 text-sm">{selected.offer.notes || '—'}</p></div>
+                    </div>
+                    <Field label="Update offer status">
+                      <select className={inputClass} value={selected.offer.status ?? 'PENDING'} disabled={saving} onChange={(e) => void updateOffer(selected.offer!, { status: e.target.value })}>
+                        {OFFER_STATUSES.map((v) => <option key={v} value={v}>{pretty(v)}</option>)}
+                      </select>
+                    </Field>
+                  </div>
+                ) : (
+                  <form onSubmit={createOffer} className="space-y-4 rounded-xl border border-dashed border-slate-700 p-4">
+                    <p className="text-sm text-slate-300">No offer has been recorded for this application. Create one below.</p>
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                      <Field label="Compensation"><input min="0" type="number" step="0.01" className={inputClass} value={offerForm.compensation} onChange={(e) => setOfferForm({ ...offerForm, compensation: e.target.value })} placeholder="Annual amount" /></Field>
+                      <Field label="Currency"><select className={inputClass} value={offerForm.currency} onChange={(e) => setOfferForm({ ...offerForm, currency: e.target.value })}><option value="INR">INR</option><option value="USD">USD</option><option value="EUR">EUR</option></select></Field>
+                      <Field label="Offered date"><input type="date" className={inputClass} value={offerForm.offeredAt} onChange={(e) => setOfferForm({ ...offerForm, offeredAt: e.target.value })} /></Field>
+                      <Field label="Expiry date"><input type="date" className={inputClass} value={offerForm.expiresAt} onChange={(e) => setOfferForm({ ...offerForm, expiresAt: e.target.value })} /></Field>
+                      <Field label="Joining date"><input type="date" className={inputClass} value={offerForm.joiningDate} onChange={(e) => setOfferForm({ ...offerForm, joiningDate: e.target.value })} /></Field>
+                    </div>
+                    <Field label="Offer notes"><textarea rows={2} className={inputClass} value={offerForm.notes} onChange={(e) => setOfferForm({ ...offerForm, notes: e.target.value })} /></Field>
+                    <div className="flex justify-end"><Button type="submit" disabled={saving}>{saving ? 'Creating…' : 'Create offer'}</Button></div>
+                  </form>
+                )}
+              </section>
+            </div>
+            <div className="flex justify-end border-t border-slate-800 px-6 py-4">
+              <Button variant="secondary" onClick={closeDetails}>Close</Button>
+            </div>
+          </section>
+        </div>
+      )}
+    </main>
+  );
+}

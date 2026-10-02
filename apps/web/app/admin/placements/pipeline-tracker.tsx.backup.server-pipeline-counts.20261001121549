@@ -1,0 +1,164 @@
+'use client';
+
+export type PipelineStage =
+  | 'PROFILE_REVIEW'
+  | 'PREPARATION_PENDING'
+  | 'JOB_READY'
+  | 'RESUME_APPROVED'
+  | 'JOBS_MATCHED'
+  | 'SUBMITTED'
+  | 'INTERVIEW_SCHEDULED'
+  | 'FEEDBACK_AWAITED'
+  | 'SELECTED'
+  | 'OFFER_RECEIVED'
+  | 'JOINED';
+
+type PipelineApplication = {
+  pipelineStage?: PipelineStage | string | null;
+};
+
+type Props = {
+  applications: PipelineApplication[];
+  selectedStage: string;
+  onSelectStage: (stage: string) => void;
+};
+
+const STAGES: {
+  stage: PipelineStage;
+  label: string;
+  description: string;
+  tone: string;
+}[] = [
+  {
+    stage: 'PROFILE_REVIEW',
+    label: 'Profile review',
+    description: 'Candidate profile under review',
+    tone: 'border-slate-700 bg-slate-950 text-slate-200',
+  },
+  {
+    stage: 'PREPARATION_PENDING',
+    label: 'Preparation pending',
+    description: 'Candidate needs preparation',
+    tone: 'border-amber-800 bg-amber-950/30 text-amber-200',
+  },
+  {
+    stage: 'JOB_READY',
+    label: 'Job ready',
+    description: 'Readiness reviewed for placement',
+    tone: 'border-blue-800 bg-blue-950/30 text-blue-200',
+  },
+  {
+    stage: 'RESUME_APPROVED',
+    label: 'Resume approved',
+    description: 'Resume approved for submission',
+    tone: 'border-violet-800 bg-violet-950/30 text-violet-200',
+  },
+  {
+    stage: 'JOBS_MATCHED',
+    label: 'Jobs matched',
+    description: 'Relevant opportunities identified',
+    tone: 'border-indigo-800 bg-indigo-950/30 text-indigo-200',
+  },
+  {
+    stage: 'SUBMITTED',
+    label: 'Submitted',
+    description: 'Application submitted to employer',
+    tone: 'border-cyan-800 bg-cyan-950/30 text-cyan-200',
+  },
+  {
+    stage: 'INTERVIEW_SCHEDULED',
+    label: 'Interview scheduled',
+    description: 'Employer interview scheduled',
+    tone: 'border-sky-800 bg-sky-950/30 text-sky-200',
+  },
+  {
+    stage: 'FEEDBACK_AWAITED',
+    label: 'Feedback awaited',
+    description: 'Waiting for interview feedback',
+    tone: 'border-orange-800 bg-orange-950/30 text-orange-200',
+  },
+  {
+    stage: 'SELECTED',
+    label: 'Selected',
+    description: 'Candidate selected by employer',
+    tone: 'border-emerald-800 bg-emerald-950/30 text-emerald-200',
+  },
+  {
+    stage: 'OFFER_RECEIVED',
+    label: 'Offer received',
+    description: 'Offer recorded for candidate',
+    tone: 'border-green-800 bg-green-950/30 text-green-200',
+  },
+  {
+    stage: 'JOINED',
+    label: 'Joined',
+    description: 'Joining confirmed',
+    tone: 'border-green-700 bg-green-950/40 text-green-200',
+  },
+];
+
+export default function PlacementPipelineTracker({
+  applications,
+  selectedStage,
+  onSelectStage,
+}: Props) {
+  const countFor = (stage: string) =>
+    applications.filter((application) => application.pipelineStage === stage).length;
+
+  return (
+    <section className="overflow-hidden rounded-xl border border-slate-800 bg-slate-900 shadow-sm">
+      <div className="border-b border-slate-800 p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 className="text-lg font-semibold">Placement pipeline</h2>
+            <p className="mt-1 text-sm text-slate-400">
+              Track each application through the persisted placement journey.
+            </p>
+          </div>
+          <button
+            type="button"
+            aria-pressed={selectedStage === ''}
+            onClick={() => onSelectStage('')}
+            className={`rounded-lg border px-3 py-2 text-sm font-semibold transition ${
+              selectedStage === ''
+                ? 'border-indigo-500 bg-indigo-500/15 text-indigo-200'
+                : 'border-slate-700 text-slate-300 hover:bg-slate-800'
+            }`}
+          >
+            All stages · {applications.length}
+          </button>
+        </div>
+      </div>
+
+      <div className="grid gap-3 p-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {STAGES.map((stage) => {
+          const active = selectedStage === stage.stage;
+          return (
+            <button
+              key={stage.stage}
+              type="button"
+              aria-pressed={active}
+              onClick={() => onSelectStage(active ? '' : stage.stage)}
+              className={`rounded-xl border p-4 text-left transition hover:-translate-y-0.5 hover:border-indigo-500 ${
+                stage.tone
+              } ${active ? 'ring-2 ring-indigo-400 ring-offset-2 ring-offset-slate-900' : ''}`}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <span className="text-sm font-semibold">{stage.label}</span>
+                <span className="rounded-lg bg-black/20 px-2.5 py-1 text-xl font-bold tabular-nums">
+                  {countFor(stage.stage)}
+                </span>
+              </div>
+              <p className="mt-2 text-xs opacity-75">{stage.description}</p>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="border-t border-slate-800 px-5 py-3 text-xs text-slate-400">
+        Counts reflect the applications currently loaded by the API and any active
+        application-status or search filters.
+      </div>
+    </section>
+  );
+}

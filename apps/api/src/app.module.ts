@@ -6,6 +6,8 @@ import { CandidateModule } from './candidate/candidate.module';
 import { AssessmentModule } from './assessment/assessment.module';
 import { LeadModule } from './lead/lead.module';
 import { CourseModule } from './course/course.module';
+import { AdminModule } from './admin/admin.module';
+import { PlacementModule } from './placement/placement.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -17,6 +19,8 @@ import { HealthController } from './health.controller';
     AssessmentModule,
     LeadModule,
     CourseModule,
+    AdminModule,
+    PlacementModule,
   ],
   controllers: [HealthController],
 })

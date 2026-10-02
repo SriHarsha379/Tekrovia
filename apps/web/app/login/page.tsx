@@ -51,7 +51,10 @@ function LoginForm() {
       sessionStorage.setItem("tekrovia_access_token", result.accessToken);
       sessionStorage.setItem("tekrovia_user", JSON.stringify(result.user));
 
-      router.push("/dashboard");
+      const isAdmin = ["ADMIN", "SUPER_ADMIN"].includes(
+        result.user.role
+      );
+      router.replace(isAdmin ? "/admin" : "/dashboard");
     } catch (err: any) {
       setError(
         err?.response?.data?.message ??
