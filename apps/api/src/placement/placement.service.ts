@@ -687,6 +687,8 @@ export class PlacementService {
 
     return {
       candidateId: candidate.id,
+      candidateName: candidate.fullName,
+      candidateEmail: candidate.email,
       profileCompleteness,
       checks,
       allEvidenceComplete,

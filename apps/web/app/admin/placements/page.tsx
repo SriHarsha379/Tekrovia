@@ -235,6 +235,8 @@ function Button({
 
 type ReadinessItem = {
   candidateId: string;
+  candidateName?: string | null;
+  candidateEmail?: string | null;
   profileCompleteness?: {
     percentage: number;
     completedFields: number;
@@ -729,10 +731,20 @@ export default function PlacementsPage() {
     }
   };
 
-  const filteredReadinessItems = readinessItems.filter((item) =>
-    item.candidateId.toLowerCase().includes(readinessSearch.trim().toLowerCase()) &&
-    (!readinessDecisionFilter || item.decision === readinessDecisionFilter)
-  );
+  const readinessSearchTerm = readinessSearch.trim().toLowerCase();
+
+  const filteredReadinessItems = readinessItems.filter((item) => {
+    const matchesSearch =
+      !readinessSearchTerm ||
+      item.candidateId.toLowerCase().includes(readinessSearchTerm) ||
+      (item.candidateName ?? "").toLowerCase().includes(readinessSearchTerm) ||
+      (item.candidateEmail ?? "").toLowerCase().includes(readinessSearchTerm);
+
+    return (
+      matchesSearch &&
+      (!readinessDecisionFilter || item.decision === readinessDecisionFilter)
+    );
+  });
 
   const readinessCompleteCount = readinessItems.filter((item) => item.allEvidenceComplete).length;
   const readinessPendingCount = readinessItems.filter((item) => item.decision === "PENDING").length;
@@ -1052,7 +1064,7 @@ export default function PlacementsPage() {
             <input
               value={readinessSearch}
               onChange={(event) => setReadinessSearch(event.target.value)}
-              placeholder="Search candidate ID"
+              placeholder="Search name, email, or candidate ID"
               aria-label="Search readiness candidates"
               className={`${inputClass} min-w-0 flex-1`}
             />
@@ -1078,7 +1090,7 @@ export default function PlacementsPage() {
               <table className="w-full min-w-[650px] text-left text-sm">
                 <thead className="bg-slate-800/70 text-xs uppercase tracking-wide text-slate-400">
                   <tr>
-                    <th className="px-5 py-3 font-semibold">Candidate ID</th>
+                    <th className="px-5 py-3 font-semibold">Candidate</th>
                     <th className="px-5 py-3 font-semibold">Profile</th>
                     <th className="px-5 py-3 font-semibold">Evidence</th>
                     <th className="px-5 py-3 font-semibold">Decision</th>
@@ -1089,7 +1101,19 @@ export default function PlacementsPage() {
                 <tbody className="divide-y divide-slate-100">
                   {filteredReadinessItems.map((item) => (
                     <tr key={item.candidateId} className="hover:bg-slate-950">
-                      <td className="px-5 py-4 font-medium">{item.candidateId}</td>
+                      <td className="px-5 py-4">
+                        <div className="min-w-48">
+                          <div className="font-semibold text-slate-100">
+                            {item.candidateName || "Unnamed candidate"}
+                          </div>
+                          <div className="mt-0.5 text-xs text-slate-400">
+                            {item.candidateEmail || "No email available"}
+                          </div>
+                          <div className="mt-1 text-[11px] text-slate-500">
+                            ID: {item.candidateId}
+                          </div>
+                        </div>
+                      </td>
                       <td className="px-5 py-4">
                         <div className="min-w-32">
                           <div className="mb-1 flex items-center justify-between gap-2 text-xs">
