@@ -83,8 +83,8 @@ export default function HomePage() {
           </h1>
 
           <p className="mx-auto mt-8 max-w-2xl text-lg leading-8 text-slate-300">
-            Build in-demand skills, assess your progress, and prepare for
-            your next career opportunity with TekRovia.
+            Learn in-demand skills. Build real projects. Prepare for
+            interviews. Access structured placement support.
           </p>
 
           <div className="mt-10 flex flex-col justify-center gap-4 sm:flex-row">
@@ -281,6 +281,11 @@ export default function HomePage() {
               question: "How much do the programs cost?",
               answer:
                 "The listed indicative prices are ₹9,999 for Technology Training, ₹9,999 for Interview Preparation, ₹9,999 for Placement Support, and ₹5,000 for Corporate Soft Skills. The suggested ₹29,999 Complete Package is subject to commercial validation. Confirm final pricing and terms before purchasing.",
+            },
+            {
+              question: "What are the refund terms?",
+              answer:
+                "Refund terms are shared in writing before you pay, so you can review them first. Please confirm them with the TekRovia team before purchasing.",
             },
             {
               question: "Does placement support guarantee a job?",

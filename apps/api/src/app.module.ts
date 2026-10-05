@@ -9,6 +9,7 @@ import { CourseModule } from './course/course.module';
 import { AdminModule } from './admin/admin.module';
 import { PlacementModule } from './placement/placement.module';
 import { AssignmentModule } from './assignment/assignment.module';
+import { ProjectModule } from './project/project.module';
 import { HealthController } from './health.controller';
 
 @Module({
@@ -23,6 +24,7 @@ import { HealthController } from './health.controller';
     AdminModule,
     PlacementModule,
     AssignmentModule,
+    ProjectModule,
   ],
   controllers: [HealthController],
 })

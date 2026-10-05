@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { adminApi, isAdmin, readAdminUser } from '../../src/lib/admin-api';
+import DeliveryOverview, { type DeliveryStats } from '../../src/components/DeliveryOverview';
 
 type Candidate = {
   id: string;
@@ -30,6 +31,7 @@ type Overview = {
   };
   leadStatuses: { status: string; count: number }[];
   recentCandidates: Candidate[];
+  delivery?: DeliveryStats;
 };
 
 const cards = [
@@ -136,6 +138,7 @@ export default function AdminDashboardPage() {
 
         {!loading && data && (
           <>
+            <DeliveryOverview delivery={data.delivery} />
             <section aria-label="Platform statistics" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {cards.map((card) => (
                 <article key={card.key} className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg shadow-black/10">

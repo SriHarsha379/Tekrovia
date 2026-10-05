@@ -185,6 +185,9 @@ export const api = {
         codingPreference?: string;
         learningAvailability?: string;
         preferredSchedule?: string;
+        previousTraining?: string;
+        careerGapMonths?: number;
+        resumeUrl?: string;
         consentGiven?: boolean;
       }
     ) => {
@@ -376,6 +379,29 @@ export const api = {
       `/assignments/${encodeURIComponent(assignmentId)}/submit`,
       data
     );
+    return response.data;
+  },
+
+  // Projects
+  getMyProjects: async () => {
+    const response = await apiClient.get('/projects/my');
+    return response.data;
+  },
+
+  submitMilestone: async (
+    milestoneId: string,
+    data: { submissionText: string | null; submissionUrl: string | null }
+  ) => {
+    const response = await apiClient.post(
+      `/projects/milestones/${encodeURIComponent(milestoneId)}/submit`,
+      data
+    );
+    return response.data;
+  },
+
+  // Placement readiness (the learner's own checklist)
+  getMyReadiness: async () => {
+    const response = await apiClient.get('/placements/me/readiness');
     return response.data;
   },
 

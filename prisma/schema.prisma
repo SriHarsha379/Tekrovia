@@ -72,6 +72,8 @@ model User {
   placementApplicationsCreated PlacementApplication[] @relation("PlacementApplicationCreator")
   assignmentSubmissions        AssignmentSubmission[] @relation("AssignmentSubmitter")
   assignmentsReviewed          AssignmentSubmission[] @relation("AssignmentReviewer")
+  projectSubmissions           ProjectSubmission[]    @relation("ProjectSubmitter")
+  projectsReviewed             ProjectSubmission[]    @relation("ProjectReviewer")
 
   @@map("users")
 }
@@ -485,6 +487,7 @@ model Course {
 
   modules     CourseModule[]
   enrollments Enrollment[]
+  projects    Project[]
 
   @@index([status, level])
   @@map("courses")
@@ -620,4 +623,71 @@ model AssignmentSubmission {
   @@index([userId, assignmentId])
   @@index([status, submittedAt])
   @@map("assignment_submissions")
+}
+
+enum ProjectSubmissionStatus {
+  SUBMITTED
+  APPROVED
+  CHANGES_REQUESTED
+}
+
+model Project {
+  id              String   @id @default(cuid())
+  courseId        String
+  course          Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  title           String
+  businessProblem String   @db.Text
+  expectedOutcome String   @db.Text
+  resources       String?  @db.Text
+  isRequired      Boolean  @default(true)
+  sortOrder       Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  milestones ProjectMilestone[]
+
+  @@unique([courseId, sortOrder])
+  @@map("projects")
+}
+
+model ProjectMilestone {
+  id            String   @id @default(cuid())
+  projectId     String
+  project       Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  title         String
+  description   String?  @db.Text
+  dueOffsetDays Int?
+  sortOrder     Int      @default(0)
+  isFinal       Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  submissions ProjectSubmission[]
+
+  @@unique([projectId, sortOrder])
+  @@map("project_milestones")
+}
+
+model ProjectSubmission {
+  id             String                  @id @default(cuid())
+  milestoneId    String
+  milestone      ProjectMilestone        @relation(fields: [milestoneId], references: [id], onDelete: Restrict)
+  userId         String
+  user           User                    @relation("ProjectSubmitter", fields: [userId], references: [id], onDelete: Cascade)
+  attemptNumber  Int
+  submissionText String?                 @db.Text
+  submissionUrl  String?
+  status         ProjectSubmissionStatus @default(SUBMITTED)
+  feedback       String?                 @db.Text
+  vivaNotes      String?                 @db.Text
+  reviewerId     String?
+  reviewer       User?                   @relation("ProjectReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
+  reviewedAt     DateTime?
+  submittedAt    DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+
+  @@unique([milestoneId, userId, attemptNumber])
+  @@index([userId, milestoneId])
+  @@index([status, submittedAt])
+  @@map("project_submissions")
 }
