@@ -111,6 +111,10 @@ export default function AdminDashboardPage() {
               className="rounded-xl border border-slate-700 px-4 py-3 text-sm font-semibold hover:bg-slate-800">
               Placement management
             </Link>
+            <Link href="/review"
+              className="rounded-xl border border-slate-700 px-4 py-3 text-sm font-semibold hover:bg-slate-800">
+              Assignment review
+            </Link>
           </nav>
         </header>
 

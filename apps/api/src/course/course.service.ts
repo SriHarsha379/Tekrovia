@@ -128,6 +128,7 @@ export class CourseService {
       include: {
         lessons: {
           orderBy: { sortOrder: 'asc' as const },
+          include: { assignment: true },
         },
       },
     },

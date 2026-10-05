@@ -4,6 +4,7 @@ import axios from "axios";
 import { useState, type FormEvent } from "react";
 import { adminApi } from "../lib/admin-api";
 import { safeHttpsUrl } from "../lib/safe-url";
+import AdminAssignmentEditor, { type LessonAssignment } from "./AdminAssignmentEditor";
 
 export type AdminLesson = {
   id: string;
@@ -12,6 +13,7 @@ export type AdminLesson = {
   content?: string | null;
   videoUrl?: string | null;
   duration?: string | null;
+  assignment?: LessonAssignment | null;
 };
 
 export type AdminModule = {
@@ -269,6 +271,10 @@ export default function AdminLessonEditor({
                       </div>
                     </form>
                   )}
+                  <AdminAssignmentEditor
+                    lessonId={lesson.id}
+                    assignment={lesson.assignment ?? null}
+                  />
                 </div>
               ))}
             </div>

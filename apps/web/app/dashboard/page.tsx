@@ -8,6 +8,7 @@ import { api } from "../../src/lib/api-client";
 import CareerReadinessCard from "../../src/components/CareerReadinessCard";
 import InteractiveAssessmentCard from "../../src/components/InteractiveAssessmentCard";
 import LearningHub from "../../src/components/LearningHub";
+import ReviewerLink from "../../src/components/ReviewerLink";
 
 type User = {
   id: string;
@@ -584,6 +585,7 @@ export default function DashboardPage() {
           </>
         )}
 
+        <ReviewerLink />
         <LearningHub />
 
         <div className="mt-8 grid gap-4 md:grid-cols-3">
