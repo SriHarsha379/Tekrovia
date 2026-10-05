@@ -9,6 +9,7 @@ import CareerReadinessCard from "../../src/components/CareerReadinessCard";
 import InteractiveAssessmentCard from "../../src/components/InteractiveAssessmentCard";
 import LearningHub from "../../src/components/LearningHub";
 import ReviewerLink from "../../src/components/ReviewerLink";
+import { homeForRole } from "../../src/lib/role-home";
 
 type User = {
   id: string;
@@ -155,6 +156,10 @@ export default function DashboardPage() {
       const parsed = JSON.parse(storedUser) as User;
       if (!parsed.id || !parsed.email) {
         throw new Error("Invalid stored user");
+      }
+      if (parsed.role === "TRAINER") {
+        router.replace(homeForRole(parsed.role));
+        return;
       }
       setUser(parsed);
       void loadDashboard(parsed);

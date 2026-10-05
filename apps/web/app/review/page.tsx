@@ -12,7 +12,7 @@ const REVIEWER_ROLES = ["TRAINER", "ADMIN", "SUPER_ADMIN"];
 export default function ReviewPage() {
   const router = useRouter();
   const [allowed, setAllowed] = useState(false);
-  const [backHref, setBackHref] = useState("/dashboard");
+  const [backHref, setBackHref] = useState<string | null>("/dashboard");
   const [view, setView] = useState<"assignments" | "projects">("assignments");
 
   useEffect(() => {
@@ -25,9 +25,15 @@ export default function ReviewPage() {
       router.replace("/dashboard");
       return;
     }
-    setBackHref(user.role === "TRAINER" ? "/dashboard" : "/admin");
+    setBackHref(user.role === "TRAINER" ? null : "/admin");
     setAllowed(true);
   }, [router]);
+
+  function handleLogout() {
+    sessionStorage.removeItem("tekrovia_access_token");
+    sessionStorage.removeItem("tekrovia_user");
+    router.replace("/login");
+  }
 
   if (!allowed) {
     return (
@@ -50,12 +56,23 @@ export default function ReviewPage() {
               Review learner submissions, approve them or request changes.
             </p>
           </div>
-          <Link
-            href={backHref}
-            className="rounded-xl border border-slate-700 px-4 py-3 text-sm font-semibold hover:bg-slate-800"
-          >
-            Back
-          </Link>
+          <div className="flex gap-3">
+            {backHref && (
+              <Link
+                href={backHref}
+                className="rounded-xl border border-slate-700 px-4 py-3 text-sm font-semibold hover:bg-slate-800"
+              >
+                Back
+              </Link>
+            )}
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="rounded-xl border border-slate-700 px-4 py-3 text-sm font-semibold hover:bg-slate-800"
+            >
+              Log out
+            </button>
+          </div>
         </header>
         <div className="mb-6 flex gap-2">
           {(["assignments", "projects"] as const).map((item) => (

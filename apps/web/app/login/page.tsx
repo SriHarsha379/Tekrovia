@@ -1,5 +1,7 @@
 "use client";
 
+import { homeForRole } from "../../src/lib/role-home";
+
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, Suspense, useState } from "react";
@@ -51,10 +53,7 @@ function LoginForm() {
       sessionStorage.setItem("tekrovia_access_token", result.accessToken);
       sessionStorage.setItem("tekrovia_user", JSON.stringify(result.user));
 
-      const isAdmin = ["ADMIN", "SUPER_ADMIN"].includes(
-        result.user.role
-      );
-      router.replace(isAdmin ? "/admin" : "/dashboard");
+      router.replace(homeForRole(result.user.role));
     } catch (err: any) {
       setError(
         err?.response?.data?.message ??
