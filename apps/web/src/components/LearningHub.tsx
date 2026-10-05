@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { api, type Course } from "../lib/api-client";
 import LessonDetails from "./LessonDetails";
 import AssignmentsPanel from "./AssignmentsPanel";
+import ProjectsPanel from "./ProjectsPanel";
 
 type ProgressLesson = {
   id: string;
@@ -423,6 +424,7 @@ export default function LearningHub() {
         )}
       </div>
       <AssignmentsPanel />
+      <ProjectsPanel />
     </section>
   );
 }

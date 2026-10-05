@@ -34,6 +34,7 @@ describe("LearningHub lesson content", () => {
     vi.spyOn(api, "getCourses").mockResolvedValue([] as never);
     vi.spyOn(api, "getMyLearningProgress").mockResolvedValue(progress as never);
     vi.spyOn(api, "getMyAssignments").mockResolvedValue([] as never);
+    vi.spyOn(api, "getMyProjects").mockResolvedValue([] as never);
 
     render(<LearningHub />);
 

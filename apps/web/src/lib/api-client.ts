@@ -379,6 +379,23 @@ export const api = {
     return response.data;
   },
 
+  // Projects
+  getMyProjects: async () => {
+    const response = await apiClient.get('/projects/my');
+    return response.data;
+  },
+
+  submitMilestone: async (
+    milestoneId: string,
+    data: { submissionText: string | null; submissionUrl: string | null }
+  ) => {
+    const response = await apiClient.post(
+      `/projects/milestones/${encodeURIComponent(milestoneId)}/submit`,
+      data
+    );
+    return response.data;
+  },
+
   // Analytics
   trackEvent: async (data: {
     event: string;
