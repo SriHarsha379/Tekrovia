@@ -22,7 +22,6 @@ export class CourseService {
             id: true,
             title: true,
             description: true,
-            videoUrl: true,
             duration: true,
             sortOrder: true,
           },
@@ -474,6 +473,10 @@ export class CourseService {
         lesson.progress.some((item) => item.isCompleted),
       ).length;
 
+      // Lesson content and video are only released to learners whose
+      // enrollment has not been cancelled.
+      const hasAccess = enrollment.status !== 'CANCELLED';
+
       return {
         enrollmentId: enrollment.id,
         courseId: enrollment.courseId,
@@ -495,6 +498,12 @@ export class CourseService {
             title: lesson.title,
             duration: lesson.duration,
             completed: lesson.progress.some((item) => item.isCompleted),
+            ...(hasAccess
+              ? {
+                  content: lesson.content ?? null,
+                  videoUrl: lesson.videoUrl ?? null,
+                }
+              : {}),
           })),
         })),
       };
