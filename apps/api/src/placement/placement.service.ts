@@ -20,6 +20,9 @@ import {
   AssessmentType,
 } from '@prisma/client';
 
+const FORMAL_INTERACTIVE_ASSESSMENT_RUBRIC = 'interactive-fullstack-v1';
+const FORMAL_INTERACTIVE_ASSESSMENT_QUESTION_COUNT = 10;
+const FORMAL_INTERACTIVE_ASSESSMENT_REQUIRED_PASS_RATIO = 0.8;
 
 const applicationStatuses = Object.values(PlacementApplicationStatus);
 const interviewStatuses = Object.values(PlacementInterviewStatus);
@@ -68,6 +71,62 @@ function enumValue<T extends string>(
 @Injectable()
 export class PlacementService {
   constructor(private readonly prisma: PrismaService) {}
+
+  private isFormalInteractiveAssessmentResponse(responses: unknown): boolean {
+    return (
+      typeof responses === 'object' &&
+      responses !== null &&
+      !Array.isArray(responses) &&
+      (responses as Record<string, unknown>).rubricVersion === FORMAL_INTERACTIVE_ASSESSMENT_RUBRIC
+    );
+  }
+
+  private getAssessmentTimestamp(assessment: {
+    completedAt?: Date | null;
+    updatedAt?: Date | null;
+    createdAt?: Date | null;
+    startedAt?: Date | null;
+  }): number {
+    const timestamps = [
+      assessment.completedAt,
+      assessment.updatedAt,
+      assessment.createdAt,
+      assessment.startedAt,
+    ]
+      .filter((value): value is Date => value instanceof Date)
+      .map((value) => value.getTime());
+
+    return timestamps.length === 0 ? 0 : Math.max(...timestamps);
+  }
+
+  private getLatestCompletedTechnicalAssessment(candidate: {
+    assessments?: Array<{
+      id: string;
+      type: AssessmentType;
+      status: AssessmentStatus;
+      completedAt?: Date | null;
+      updatedAt?: Date | null;
+      createdAt?: Date | null;
+      startedAt?: Date | null;
+      responses?: unknown;
+      score?: number | null;
+      maxScore?: number | null;
+    }>;
+  }) {
+    const assessments = [...(candidate.assessments ?? [])]
+      .filter((assessment) => assessment.type === AssessmentType.TECHNICAL)
+      .filter((assessment) =>
+        [AssessmentStatus.COMPLETED, AssessmentStatus.REVIEWED].includes(
+          assessment.status,
+        ),
+      )
+      .sort(
+        (left, right) =>
+          this.getAssessmentTimestamp(right) - this.getAssessmentTimestamp(left),
+      );
+
+    return assessments[0] ?? null;
+  }
 
   async overview(range = '30d') {
     const allowedRanges = ['7d', '30d', '90d', 'all'];
@@ -568,7 +627,6 @@ export class PlacementService {
     if (!found) throw new NotFoundException('Placement application not found.');
   }
 
-
   /**
    * Builds an evidence-based readiness summary.
    * This is a checklist, not an automated placement approval.
@@ -608,23 +666,26 @@ export class PlacementService {
         project.expertApproved,
     );
 
-    const formalInteractiveAssessment = candidate.assessments.find(
-      (assessment) => {
-        const responses = assessment.responses;
-        return (
-          typeof responses === 'object' &&
-          responses !== null &&
-          !Array.isArray(responses) &&
-          responses.rubricVersion === 'interactive-fullstack-v1'
-        );
-      },
-    );
+    const latestCompletedTechnicalAssessment = this.getLatestCompletedTechnicalAssessment(candidate);
+    const formalInteractiveAssessment =
+      latestCompletedTechnicalAssessment &&
+      this.isFormalInteractiveAssessmentResponse(latestCompletedTechnicalAssessment.responses)
+        ? latestCompletedTechnicalAssessment
+        : null;
+
+    const formalAssessmentQuestionCount =
+      formalInteractiveAssessment &&
+      typeof (formalInteractiveAssessment.responses as Record<string, unknown> | null)?.totalQuestions === 'number'
+        ? Number((formalInteractiveAssessment.responses as Record<string, unknown>).totalQuestions)
+        : FORMAL_INTERACTIVE_ASSESSMENT_QUESTION_COUNT;
+
     const technicalAssessmentPassed =
       !!formalInteractiveAssessment &&
+      formalAssessmentQuestionCount === FORMAL_INTERACTIVE_ASSESSMENT_QUESTION_COUNT &&
       formalInteractiveAssessment.score !== null &&
       formalInteractiveAssessment.maxScore > 0 &&
-      formalInteractiveAssessment.score /
-        formalInteractiveAssessment.maxScore >= 0.8;
+      formalInteractiveAssessment.score / formalInteractiveAssessment.maxScore >=
+        FORMAL_INTERACTIVE_ASSESSMENT_REQUIRED_PASS_RATIO;
 
     const checks = {
       expertMocks: {
@@ -653,8 +714,7 @@ export class PlacementService {
         evidenceType: formalInteractiveAssessment
           ? 'FORMAL_INTERACTIVE_ASSESSMENT'
           : 'LEGACY_TECHNICAL_ASSESSMENT',
-        formalInteractiveAssessmentVerified:
-          !!formalInteractiveAssessment,
+        formalInteractiveAssessmentVerified: !!formalInteractiveAssessment,
       },
     };
 
@@ -766,5 +826,4 @@ export class PlacementService {
       allEvidenceComplete: summary.allEvidenceComplete,
     };
   }
-
 }
