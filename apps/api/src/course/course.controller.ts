@@ -25,6 +25,10 @@ import {
   validateAdminUpdateCourse,
 } from './dto/admin-course.dto';
 
+import {
+  AdminUpdateLessonDto,
+  validateAdminUpdateLesson,
+} from './dto/admin-lesson.dto';
 import { CourseService } from './course.service';
 
 interface AuthenticatedRequest {
@@ -87,6 +91,24 @@ export class CourseController {
       );
     }
     return this.courseService.adminUpdate(id, dto);
+  }
+
+  @Patch('admin/lessons/:lessonId')
+  @ApiOperation({ summary: 'Update a lesson title, content or video (admin only)' })
+  adminUpdateLesson(
+    @Req() request: AuthenticatedRequest,
+    @Param('lessonId') lessonId: string,
+    @Body() dto: AdminUpdateLessonDto,
+  ) {
+    this.assertAdmin(request);
+    try {
+      validateAdminUpdateLesson(dto);
+    } catch (error) {
+      throw new BadRequestException(
+        error instanceof Error ? error.message : 'Invalid lesson update.',
+      );
+    }
+    return this.courseService.adminUpdateLesson(lessonId, dto);
   }
 
   @Patch('admin/:id/publish')

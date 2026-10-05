@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCourseDto } from './dto/create-course.dto';
+import { AdminUpdateLessonDto } from './dto/admin-lesson.dto';
 
 @Injectable()
 export class CourseService {
@@ -243,6 +244,46 @@ export class CourseService {
       status: course.status,
       enrollmentCount: existing._count.enrollments,
     };
+  }
+
+  async adminUpdateLesson(lessonId: string, dto: AdminUpdateLessonDto) {
+    const existing = await this.prisma.lesson.findUnique({
+      where: { id: lessonId },
+      select: { id: true },
+    });
+
+    if (!existing) {
+      throw new NotFoundException('Lesson not found.');
+    }
+
+    const text = (value: string | null | undefined) =>
+      value === null || value === undefined ? null : value.trim() || null;
+
+    // Updated in place so the lesson id, ordering, publish state and
+    // learner progress are never touched.
+    return this.prisma.lesson.update({
+      where: { id: lessonId },
+      data: {
+        ...(dto.title !== undefined && { title: dto.title.trim() }),
+        ...(dto.description !== undefined && {
+          description: text(dto.description),
+        }),
+        ...(dto.content !== undefined && { content: text(dto.content) }),
+        ...(dto.videoUrl !== undefined && { videoUrl: text(dto.videoUrl) }),
+        ...(dto.duration !== undefined && { duration: text(dto.duration) }),
+      },
+      select: {
+        id: true,
+        moduleId: true,
+        title: true,
+        description: true,
+        content: true,
+        videoUrl: true,
+        duration: true,
+        sortOrder: true,
+        isPublished: true,
+      },
+    });
   }
 
   async adminPublish(id: string) {

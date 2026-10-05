@@ -112,6 +112,7 @@ const controllers: ControllerSpec[] = [
       { name: 'adminUpdate', kind: 'admin', args: (r) => [r, 'course-1', { title: 'Renamed' }] },
       { name: 'adminPublish', kind: 'admin', args: (r) => [r, 'course-1'] },
       { name: 'adminArchive', kind: 'admin', args: (r) => [r, 'course-1'] },
+      { name: 'adminUpdateLesson', kind: 'admin', args: (r) => [r, 'lesson-1', { title: 'Lesson' }] },
       { name: 'findAll', kind: 'authenticated', args: () => [] },
       { name: 'myEnrollments', kind: 'authenticated', args: (r) => [r] },
       { name: 'myProgress', kind: 'authenticated', args: (r) => [r] },
