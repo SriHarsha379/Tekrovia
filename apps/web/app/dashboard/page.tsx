@@ -59,6 +59,9 @@ type ProfileForm = {
   codingPreference: string;
   learningAvailability: string;
   preferredSchedule: string;
+  previousTraining: string;
+  careerGapMonths: string;
+  resumeUrl: string;
   consentGiven: boolean;
 };
 
@@ -74,6 +77,9 @@ const emptyForm: ProfileForm = {
   codingPreference: "",
   learningAvailability: "",
   preferredSchedule: "",
+  previousTraining: "",
+  careerGapMonths: "",
+  resumeUrl: "",
   consentGiven: false,
 };
 
@@ -196,6 +202,10 @@ export default function DashboardPage() {
       ? Number(form.graduationYear)
       : undefined;
     const experienceYears = Number(form.experienceYears);
+    const careerGapMonths = form.careerGapMonths.trim()
+      ? Number(form.careerGapMonths)
+      : undefined;
+    const resumeUrl = form.resumeUrl.trim();
 
     if (!/^\d{10}$/.test(phone)) {
       setError("Please enter a valid 10-digit phone number.");
@@ -224,6 +234,32 @@ export default function DashboardPage() {
       return;
     }
 
+    if (
+      careerGapMonths !== undefined &&
+      (!Number.isInteger(careerGapMonths) ||
+        careerGapMonths < 0 ||
+        careerGapMonths > 600)
+    ) {
+      setError("Career gap must be a whole number of months from 0 to 600.");
+      setSaving(false);
+      return;
+    }
+
+    if (resumeUrl) {
+      let validResume = false;
+      try {
+        const parsedResume = new URL(resumeUrl);
+        validResume = parsedResume.protocol === "https:" && !parsedResume.username && !parsedResume.password;
+      } catch {
+        validResume = false;
+      }
+      if (!validResume) {
+        setError("Please enter your resume link as a valid https link.");
+        setSaving(false);
+        return;
+      }
+    }
+
     try {
       await api.candidates.createForUser(user.id, {
         fullName: form.fullName.trim(),
@@ -241,6 +277,9 @@ export default function DashboardPage() {
         codingPreference: form.codingPreference.trim() || undefined,
         learningAvailability: form.learningAvailability.trim() || undefined,
         preferredSchedule: form.preferredSchedule.trim() || undefined,
+        previousTraining: form.previousTraining.trim() || undefined,
+        careerGapMonths,
+        resumeUrl: resumeUrl || undefined,
         consentGiven: form.consentGiven,
       });
 
@@ -462,6 +501,36 @@ export default function DashboardPage() {
                     value={form.preferredSchedule}
                     onChange={(e) => updateField("preferredSchedule", e.target.value)}
                     placeholder="e.g. Weekday evenings"
+                  />
+                </label>
+                <label className="block text-sm text-slate-300 sm:col-span-2">
+                  Earlier training or courses
+                  <input
+                    className={inputClass}
+                    maxLength={2000}
+                    value={form.previousTraining}
+                    onChange={(e) => updateField("previousTraining", e.target.value)}
+                    placeholder="e.g. 2-month Python bootcamp, online SQL course"
+                  />
+                </label>
+                <label className="block text-sm text-slate-300">
+                  Career gap (months)
+                  <input
+                    className={inputClass}
+                    inputMode="numeric"
+                    value={form.careerGapMonths}
+                    onChange={(e) => updateField("careerGapMonths", e.target.value)}
+                    placeholder="0 if none"
+                  />
+                </label>
+                <label className="block text-sm text-slate-300">
+                  Resume link (https)
+                  <input
+                    className={inputClass}
+                    maxLength={2000}
+                    value={form.resumeUrl}
+                    onChange={(e) => updateField("resumeUrl", e.target.value)}
+                    placeholder="https://"
                   />
                 </label>
               </div>

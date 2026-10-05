@@ -185,6 +185,9 @@ export const api = {
         codingPreference?: string;
         learningAvailability?: string;
         preferredSchedule?: string;
+        previousTraining?: string;
+        careerGapMonths?: number;
+        resumeUrl?: string;
         consentGiven?: boolean;
       }
     ) => {

@@ -139,6 +139,8 @@ export class CandidateService {
           targetRole: dto.targetRole,
           codingPreference: dto.codingPreference,
           resumeUrl: dto.resumeUrl,
+          previousTraining: dto.previousTraining,
+          careerGapMonths: dto.careerGapMonths ?? 0,
           learningAvailability: dto.learningAvailability,
           preferredSchedule: dto.preferredSchedule,
           courseInterest: dto.courseInterest,
