@@ -103,9 +103,14 @@ export class AuthService {
       }
     }
 
-    // Do not issue production OTPs until a real delivery provider
-    // is configured. Never expose an OTP in a production response.
-    if (process.env.NODE_ENV === 'production') {
+    // Fail closed: an OTP is only generated and returned when a developer
+    // explicitly opts in with ALLOW_DEV_OTP_RESPONSE=true. It is never
+    // available in production, regardless of the flag, until a real
+    // delivery provider (email/SMS) is configured.
+    if (
+      process.env.NODE_ENV === 'production' ||
+      process.env.ALLOW_DEV_OTP_RESPONSE !== 'true'
+    ) {
       throw new ServiceUnavailableException(
         'OTP delivery is not configured. Please try again later.',
       );
