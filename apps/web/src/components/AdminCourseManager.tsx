@@ -4,6 +4,7 @@ import axios from "axios";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import AdminLessonEditor, { type AdminModule } from "./AdminLessonEditor";
+import AdminProjectEditor, { type AdminProject } from "./AdminProjectEditor";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
@@ -29,6 +30,7 @@ type AdminCourse = {
   status: CourseStatus;
   enrollmentCount?: number;
   modules?: AdminModule[];
+  projects?: AdminProject[];
   createdAt?: string;
   updatedAt?: string;
 };
@@ -730,6 +732,7 @@ useEffect(() => {
                     )}
                   </div>
                 <AdminLessonEditor modules={course.modules ?? []} />
+                <AdminProjectEditor courseId={course.id} projects={course.projects ?? []} />
                 </article>
               ))}
             </div>

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import ProjectReviewQueue from "../../src/components/ProjectReviewQueue";
 import ReviewQueue from "../../src/components/ReviewQueue";
 import { readAdminUser } from "../../src/lib/admin-api";
 
@@ -12,6 +13,7 @@ export default function ReviewPage() {
   const router = useRouter();
   const [allowed, setAllowed] = useState(false);
   const [backHref, setBackHref] = useState("/dashboard");
+  const [view, setView] = useState<"assignments" | "projects">("assignments");
 
   useEffect(() => {
     const user = readAdminUser();
@@ -43,7 +45,7 @@ export default function ReviewPage() {
             <p className="text-xs font-bold uppercase tracking-[0.24em] text-indigo-300">
               TekRovia · Review
             </p>
-            <h1 className="mt-2 text-3xl font-bold">Assignment review</h1>
+            <h1 className="mt-2 text-3xl font-bold">Review</h1>
             <p className="mt-2 text-slate-400">
               Review learner submissions, approve them or request changes.
             </p>
@@ -55,7 +57,24 @@ export default function ReviewPage() {
             Back
           </Link>
         </header>
-        <ReviewQueue />
+        <div className="mb-6 flex gap-2">
+          {(["assignments", "projects"] as const).map((item) => (
+            <button
+              key={item}
+              type="button"
+              aria-pressed={view === item}
+              onClick={() => setView(item)}
+              className={`rounded-xl border px-4 py-2 text-sm font-semibold ${
+                view === item
+                  ? "border-indigo-400 bg-indigo-500/20 text-white"
+                  : "border-white/10 text-slate-300 hover:bg-white/10"
+              }`}
+            >
+              {item === "assignments" ? "Assignments" : "Projects"}
+            </button>
+          ))}
+        </div>
+        {view === "assignments" ? <ReviewQueue /> : <ProjectReviewQueue />}
       </div>
     </main>
   );

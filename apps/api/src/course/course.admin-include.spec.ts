@@ -76,6 +76,33 @@ describe('CourseService assignment visibility', () => {
     expect(lesson.assignment.title).toBe('Build an API');
   });
 
+  it('loads each course project with its ordered milestones in the administrator list', async () => {
+    prisma.course.findMany.mockResolvedValue([]);
+
+    await service.adminFindAll();
+
+    const include = prisma.course.findMany.mock.calls[0][0].include as {
+      projects: {
+        orderBy: Record<string, string>;
+        include: { milestones: { orderBy: Record<string, string> } };
+      };
+    };
+    expect(include.projects.orderBy).toEqual({ sortOrder: 'asc' });
+    expect(include.projects.include.milestones.orderBy).toEqual({
+      sortOrder: 'asc',
+    });
+  });
+
+  it('never selects projects in the public catalog', async () => {
+    prisma.course.findMany.mockResolvedValue([]);
+
+    await service.findAll({});
+
+    expect(prisma.course.findMany.mock.calls[0][0].include).not.toHaveProperty(
+      'projects',
+    );
+  });
+
   it('never selects assignments in the public catalog', async () => {
     prisma.course.findMany.mockResolvedValue([]);
 

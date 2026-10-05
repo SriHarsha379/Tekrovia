@@ -132,6 +132,12 @@ export class CourseService {
         },
       },
     },
+    projects: {
+      orderBy: { sortOrder: 'asc' as const },
+      include: {
+        milestones: { orderBy: { sortOrder: 'asc' as const } },
+      },
+    },
   };
 
   async adminFindAll() {
