@@ -3,6 +3,7 @@
 import axios from "axios";
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import AdminLessonEditor, { type AdminModule } from "./AdminLessonEditor";
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
@@ -27,6 +28,7 @@ type AdminCourse = {
   curriculum: CurriculumModule[];
   status: CourseStatus;
   enrollmentCount?: number;
+  modules?: AdminModule[];
   createdAt?: string;
   updatedAt?: string;
 };
@@ -522,7 +524,7 @@ useEffect(() => {
                 <div>
                   <h3 className="font-semibold text-white">Course curriculum *</h3>
                   <p className="mt-1 text-xs text-slate-400">
-                    Organize your course into modules and lessons.
+                    Organize your course into modules and lessons. Lesson notes and video links are added after saving, from the course card; restructuring the curriculum later recreates the lessons and removes that content.
                   </p>
                 </div>
                 <span className="rounded-full bg-slate-800 px-3 py-1 text-xs text-slate-300">
@@ -727,6 +729,7 @@ useEffect(() => {
                       </button>
                     )}
                   </div>
+                <AdminLessonEditor modules={course.modules ?? []} />
                 </article>
               ))}
             </div>

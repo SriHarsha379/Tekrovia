@@ -70,6 +70,8 @@ model User {
   lessonProgress               LessonProgress[]
   auditLogs                    AuditLog[]
   placementApplicationsCreated PlacementApplication[] @relation("PlacementApplicationCreator")
+  assignmentSubmissions        AssignmentSubmission[] @relation("AssignmentSubmitter")
+  assignmentsReviewed          AssignmentSubmission[] @relation("AssignmentReviewer")
 
   @@map("users")
 }
@@ -519,7 +521,8 @@ model Lesson {
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
-  progress LessonProgress[]
+  progress   LessonProgress[]
+  assignment Assignment?
 
   @@unique([moduleId, sortOrder])
   @@index([moduleId])
@@ -573,4 +576,48 @@ model PlacementPipelineHistory {
   @@index([applicationId, createdAt])
   @@index([toStage, createdAt])
   @@map("placement_pipeline_history")
+}
+
+enum AssignmentSubmissionStatus {
+  SUBMITTED
+  APPROVED
+  CHANGES_REQUESTED
+}
+
+model Assignment {
+  id           String   @id @default(cuid())
+  lessonId     String   @unique
+  lesson       Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  title        String
+  instructions String   @db.Text
+  isRequired   Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  submissions AssignmentSubmission[]
+
+  @@map("assignments")
+}
+
+model AssignmentSubmission {
+  id             String                     @id @default(cuid())
+  assignmentId   String
+  assignment     Assignment                 @relation(fields: [assignmentId], references: [id], onDelete: Restrict)
+  userId         String
+  user           User                       @relation("AssignmentSubmitter", fields: [userId], references: [id], onDelete: Cascade)
+  attemptNumber  Int
+  submissionText String?                    @db.Text
+  submissionUrl  String?
+  status         AssignmentSubmissionStatus @default(SUBMITTED)
+  feedback       String?                    @db.Text
+  reviewerId     String?
+  reviewer       User?                      @relation("AssignmentReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
+  reviewedAt     DateTime?
+  submittedAt    DateTime                   @default(now())
+  updatedAt      DateTime                   @updatedAt
+
+  @@unique([assignmentId, userId, attemptNumber])
+  @@index([userId, assignmentId])
+  @@index([status, submittedAt])
+  @@map("assignment_submissions")
 }

@@ -362,6 +362,23 @@ export const api = {
     return response.data;
   },
 
+  // Assignments
+  getMyAssignments: async () => {
+    const response = await apiClient.get('/assignments/my');
+    return response.data;
+  },
+
+  submitAssignment: async (
+    assignmentId: string,
+    data: { submissionText: string | null; submissionUrl: string | null }
+  ) => {
+    const response = await apiClient.post(
+      `/assignments/${encodeURIComponent(assignmentId)}/submit`,
+      data
+    );
+    return response.data;
+  },
+
   // Analytics
   trackEvent: async (data: {
     event: string;

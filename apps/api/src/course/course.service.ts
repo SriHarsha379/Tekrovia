@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCourseDto } from './dto/create-course.dto';
+import { AdminUpdateLessonDto } from './dto/admin-lesson.dto';
 
 @Injectable()
 export class CourseService {
@@ -22,7 +23,6 @@ export class CourseService {
             id: true,
             title: true,
             description: true,
-            videoUrl: true,
             duration: true,
             sortOrder: true,
           },
@@ -128,6 +128,7 @@ export class CourseService {
       include: {
         lessons: {
           orderBy: { sortOrder: 'asc' as const },
+          include: { assignment: true },
         },
       },
     },
@@ -205,6 +206,17 @@ export class CourseService {
       );
     }
 
+    if (dto.curriculum !== undefined) {
+      const assignmentCount = await this.prisma.assignment.count({
+        where: { lesson: { module: { courseId: id } } },
+      });
+      if (assignmentCount > 0) {
+        throw new BadRequestException(
+          'Curriculum cannot be replaced after assignments have been added.',
+        );
+      }
+    }
+
     const course = await this.prisma.course.update({
       where: { id },
       data: {
@@ -244,6 +256,46 @@ export class CourseService {
       status: course.status,
       enrollmentCount: existing._count.enrollments,
     };
+  }
+
+  async adminUpdateLesson(lessonId: string, dto: AdminUpdateLessonDto) {
+    const existing = await this.prisma.lesson.findUnique({
+      where: { id: lessonId },
+      select: { id: true },
+    });
+
+    if (!existing) {
+      throw new NotFoundException('Lesson not found.');
+    }
+
+    const text = (value: string | null | undefined) =>
+      value === null || value === undefined ? null : value.trim() || null;
+
+    // Updated in place so the lesson id, ordering, publish state and
+    // learner progress are never touched.
+    return this.prisma.lesson.update({
+      where: { id: lessonId },
+      data: {
+        ...(dto.title !== undefined && { title: dto.title.trim() }),
+        ...(dto.description !== undefined && {
+          description: text(dto.description),
+        }),
+        ...(dto.content !== undefined && { content: text(dto.content) }),
+        ...(dto.videoUrl !== undefined && { videoUrl: text(dto.videoUrl) }),
+        ...(dto.duration !== undefined && { duration: text(dto.duration) }),
+      },
+      select: {
+        id: true,
+        moduleId: true,
+        title: true,
+        description: true,
+        content: true,
+        videoUrl: true,
+        duration: true,
+        sortOrder: true,
+        isPublished: true,
+      },
+    });
   }
 
   async adminPublish(id: string) {
@@ -426,17 +478,68 @@ export class CourseService {
     ]);
 
     if (total > 0 && completed >= total) {
-      await this.prisma.enrollment.updateMany({
-        where: {
-          userId,
-          courseId: lesson.module.courseId,
-          status: 'ACTIVE',
-        },
-        data: { status: 'COMPLETED', completedAt: new Date() },
-      });
+      await this.completeEnrollmentIfEligible(userId, lesson.module.courseId);
     }
 
     return { ...progress, courseProgress: { completed, total } };
+  }
+
+  /**
+   * Marks an ACTIVE enrollment COMPLETED only when every published lesson is
+   * complete AND every required assignment has an approved submission.
+   * Courses without required assignments follow the original lessons-only rule.
+   */
+  async completeEnrollmentIfEligible(
+    userId: string,
+    courseId: string,
+  ): Promise<boolean> {
+    const [totalLessons, completedLessons, requiredAssignments] =
+      await Promise.all([
+        this.prisma.lesson.count({
+          where: { isPublished: true, module: { courseId } },
+        }),
+        this.prisma.lessonProgress.count({
+          where: {
+            userId,
+            isCompleted: true,
+            lesson: { isPublished: true, module: { courseId } },
+          },
+        }),
+        this.prisma.assignment.findMany({
+          where: {
+            isRequired: true,
+            lesson: { isPublished: true, module: { courseId } },
+          },
+          select: { id: true },
+        }),
+      ]);
+
+    if (totalLessons === 0 || completedLessons < totalLessons) {
+      return false;
+    }
+
+    if (requiredAssignments.length > 0) {
+      const approved = await this.prisma.assignmentSubmission.findMany({
+        where: {
+          userId,
+          status: 'APPROVED',
+          assignmentId: { in: requiredAssignments.map((item) => item.id) },
+        },
+        select: { assignmentId: true },
+        distinct: ['assignmentId'],
+      });
+
+      if (approved.length < requiredAssignments.length) {
+        return false;
+      }
+    }
+
+    const result = await this.prisma.enrollment.updateMany({
+      where: { userId, courseId, status: 'ACTIVE' },
+      data: { status: 'COMPLETED', completedAt: new Date() },
+    });
+
+    return result.count > 0;
   }
 
   async myProgress(userId: string) {
@@ -474,6 +577,10 @@ export class CourseService {
         lesson.progress.some((item) => item.isCompleted),
       ).length;
 
+      // Lesson content and video are only released to learners whose
+      // enrollment has not been cancelled.
+      const hasAccess = enrollment.status !== 'CANCELLED';
+
       return {
         enrollmentId: enrollment.id,
         courseId: enrollment.courseId,
@@ -495,6 +602,12 @@ export class CourseService {
             title: lesson.title,
             duration: lesson.duration,
             completed: lesson.progress.some((item) => item.isCompleted),
+            ...(hasAccess
+              ? {
+                  content: lesson.content ?? null,
+                  videoUrl: lesson.videoUrl ?? null,
+                }
+              : {}),
           })),
         })),
       };

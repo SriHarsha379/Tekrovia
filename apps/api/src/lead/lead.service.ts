@@ -1,5 +1,20 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { randomInt } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
+
+const LEAD_CODE_ATTEMPTS = 5;
+
+function generateLeadCode(): string {
+  return `LEAD-${new Date().getFullYear()}-${randomInt(100000, 1000000)}`;
+}
+
+function isUniqueViolation(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    (error as { code?: unknown }).code === 'P2002'
+  );
+}
 
 @Injectable()
 export class LeadService {
@@ -28,25 +43,34 @@ export class LeadService {
       return existing;
     }
 
-    const lead = await this.prisma.lead.create({
-      data: {
-        leadCode: `LEAD-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 900000) + 100000)}`,
-        name: data.name,
-        email: data.email,
-        phone: data.phone,
-        courseInterest: data.courseInterest,
-        source: data.source,
-        utmSource: data.utmSource,
-        utmMedium: data.utmMedium,
-        utmCampaign: data.utmCampaign,
-        utmContent: data.utmContent,
-        utmTerm: data.utmTerm,
-        consentGiven: data.consentGiven ?? false,
-        status: 'NEW',
-      },
-    });
+    // Lead codes are random, so retry on the rare unique-constraint collision.
+    for (let attempt = 1; attempt <= LEAD_CODE_ATTEMPTS; attempt += 1) {
+      try {
+        return await this.prisma.lead.create({
+          data: {
+            leadCode: generateLeadCode(),
+            name: data.name,
+            email: data.email,
+            phone: data.phone,
+            courseInterest: data.courseInterest,
+            source: data.source,
+            utmSource: data.utmSource,
+            utmMedium: data.utmMedium,
+            utmCampaign: data.utmCampaign,
+            utmContent: data.utmContent,
+            utmTerm: data.utmTerm,
+            consentGiven: data.consentGiven ?? false,
+            status: 'NEW',
+          },
+        });
+      } catch (error) {
+        if (!isUniqueViolation(error) || attempt === LEAD_CODE_ATTEMPTS) {
+          throw error;
+        }
+      }
+    }
 
-    return lead;
+    throw new Error('Unable to generate a unique lead code.');
   }
 
   async convertLeadToCandidate(leadId: string, candidateId: string) {
