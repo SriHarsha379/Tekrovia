@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import UtmCapture from "../src/components/UtmCapture";
 
 export const metadata: Metadata = {
   title: "TekRovia | Learning to Placement",
@@ -13,7 +14,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <UtmCapture />
+        {children}
+      </body>
     </html>
   );
 }

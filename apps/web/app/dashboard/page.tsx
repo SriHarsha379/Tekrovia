@@ -10,6 +10,7 @@ import InteractiveAssessmentCard from "../../src/components/InteractiveAssessmen
 import LearningHub from "../../src/components/LearningHub";
 import ReviewerLink from "../../src/components/ReviewerLink";
 import { homeForRole } from "../../src/lib/role-home";
+import { readStoredUtm } from "../../src/lib/utm";
 
 type User = {
   id: string;
@@ -280,6 +281,7 @@ export default function DashboardPage() {
         previousTraining: form.previousTraining.trim() || undefined,
         careerGapMonths,
         resumeUrl: resumeUrl || undefined,
+        ...readStoredUtm(),
         consentGiven: form.consentGiven,
       });
 
