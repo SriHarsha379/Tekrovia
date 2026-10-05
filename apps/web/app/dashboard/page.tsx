@@ -9,6 +9,7 @@ import CareerReadinessCard from "../../src/components/CareerReadinessCard";
 import InteractiveAssessmentCard from "../../src/components/InteractiveAssessmentCard";
 import LearningHub from "../../src/components/LearningHub";
 import ReviewerLink from "../../src/components/ReviewerLink";
+import ReadinessChecklist from "../../src/components/ReadinessChecklist";
 import { homeForRole } from "../../src/lib/role-home";
 import { readStoredUtm } from "../../src/lib/utm";
 
@@ -661,6 +662,7 @@ export default function DashboardPage() {
           </>
         )}
 
+        <ReadinessChecklist />
         <ReviewerLink />
         <LearningHub />
 

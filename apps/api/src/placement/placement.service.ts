@@ -701,6 +701,54 @@ export class PlacementService {
     };
   }
 
+  /**
+   * The learner's own checklist. It exposes counts, scores and the human
+   * decision status only: no reviewer names, notes, feedback or contact
+   * details. It is a checklist, never an approval.
+   */
+  async getStudentReadiness(userId: string) {
+    const candidate = await this.prisma.candidate.findUnique({
+      where: { userId },
+      select: { id: true },
+    });
+
+    if (!candidate) {
+      return { profileComplete: false as const };
+    }
+
+    const summary = await this.buildReadinessSummary(candidate.id);
+    const { checks } = summary;
+
+    return {
+      profileComplete: true as const,
+      checks: {
+        expertMocks: {
+          complete: checks.expertMocks.complete,
+          completedCount: checks.expertMocks.completedCount,
+          requiredCount: checks.expertMocks.requiredCount,
+        },
+        finalExpertMock: {
+          complete: checks.finalExpertMock.complete,
+          score: checks.finalExpertMock.score,
+          maxScore: checks.finalExpertMock.maxScore,
+          requiredScore: checks.finalExpertMock.requiredScore,
+        },
+        expertApprovedProject: {
+          complete: checks.expertApprovedProject.complete,
+          approvedCount: checks.expertApprovedProject.approvedCount,
+        },
+        technicalAssessment: {
+          complete: checks.technicalAssessment.complete,
+          score: checks.technicalAssessment.score,
+          maxScore: checks.technicalAssessment.maxScore,
+        },
+      },
+      allEvidenceComplete: summary.allEvidenceComplete,
+      decision: summary.decision,
+      approvalRequiresHumanReview: true as const,
+    };
+  }
+
   async getReadinessCandidates() {
     const candidates = await this.prisma.candidate.findMany({
       select: { id: true },

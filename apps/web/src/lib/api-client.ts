@@ -399,6 +399,12 @@ export const api = {
     return response.data;
   },
 
+  // Placement readiness (the learner's own checklist)
+  getMyReadiness: async () => {
+    const response = await apiClient.get('/placements/me/readiness');
+    return response.data;
+  },
+
   // Analytics
   trackEvent: async (data: {
     event: string;
