@@ -33,6 +33,7 @@ describe("LearningHub lesson content", () => {
   it("offers lesson details only for lessons that have content", async () => {
     vi.spyOn(api, "getCourses").mockResolvedValue([] as never);
     vi.spyOn(api, "getMyLearningProgress").mockResolvedValue(progress as never);
+    vi.spyOn(api, "getMyAssignments").mockResolvedValue([] as never);
 
     render(<LearningHub />);
 
