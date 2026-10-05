@@ -2,12 +2,15 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api, type Course } from "../lib/api-client";
+import LessonDetails from "./LessonDetails";
 
 type ProgressLesson = {
   id: string;
   title: string;
   duration?: string | null;
   completed: boolean;
+  content?: string | null;
+  videoUrl?: string | null;
 };
 
 type ProgressModule = {
@@ -394,6 +397,7 @@ export default function LearningHub() {
                                 <p className="mt-1 text-xs text-slate-500">{lesson.duration}</p>
                               )}
                             </div>
+                            <LessonDetails lesson={lesson} />
                             {lesson.completed ? (
                               <span className="text-xs text-emerald-300">✓ Completed</span>
                             ) : (
