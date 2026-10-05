@@ -1200,9 +1200,17 @@ export default function PlacementsPage() {
               <div className="flex items-center justify-between border-b border-slate-800 px-6 py-4">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Readiness evidence</p>
-                  <h2 id="readiness-dialog-title" className="text-xl font-bold">
-                    Candidate {selectedReadiness.candidateId}
-                  </h2>
+                  <div>
+                    <h2 id="readiness-dialog-title" className="text-xl font-bold">
+                      {selectedReadiness.candidateName || "Unnamed candidate"}
+                    </h2>
+                    <p className="mt-1 text-sm text-slate-400">
+                      {selectedReadiness.candidateEmail || "No email available"}
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      Candidate ID: {selectedReadiness.candidateId}
+                    </p>
+                  </div>
                 </div>
                 <button
                   type="button"
