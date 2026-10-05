@@ -26,6 +26,8 @@ const interviewStatuses = Object.values(PlacementInterviewStatus);
 const interviewOutcomes = Object.values(PlacementInterviewOutcome);
 const offerStatuses = Object.values(PlacementOfferStatus);
 
+export const RECOVERY_THRESHOLD = 4;
+
 function requiredString(body: Record<string, unknown>, key: string): string {
   const value = body[key];
   if (typeof value !== 'string' || !value.trim()) {
@@ -598,6 +600,22 @@ export class PlacementService {
       throw new NotFoundException('Candidate not found.');
     }
 
+    const failedInterviews = await this.prisma.placementInterview.findMany({
+      where: {
+        outcome: PlacementInterviewOutcome.FAILED,
+        application: { candidateId },
+      },
+      orderBy: { scheduledAt: 'desc' },
+      select: {
+        id: true,
+        round: true,
+        title: true,
+        scheduledAt: true,
+        feedback: true,
+        application: { select: { companyName: true, jobTitle: true } },
+      },
+    });
+
     const completedMocks = candidate.expertMockInterviews.filter(
       (mock) => mock.status === ExpertMockInterviewStatus.COMPLETED,
     );
@@ -697,6 +715,20 @@ export class PlacementService {
       expertMockInterviews: candidate.expertMockInterviews,
       projectReviews: candidate.projectReviews,
       technicalAssessments: candidate.assessments,
+      recovery: {
+        threshold: RECOVERY_THRESHOLD,
+        failedInterviewCount: failedInterviews.length,
+        recoveryNeeded: failedInterviews.length >= RECOVERY_THRESHOLD,
+        failedInterviews: failedInterviews.map((interview) => ({
+          id: interview.id,
+          companyName: interview.application.companyName,
+          jobTitle: interview.application.jobTitle,
+          round: interview.round,
+          title: interview.title,
+          scheduledAt: interview.scheduledAt,
+          feedback: interview.feedback,
+        })),
+      },
       approvalRequiresHumanReview: true,
     };
   }

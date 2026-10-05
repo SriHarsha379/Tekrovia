@@ -1,6 +1,7 @@
 'use client';
 
 import PlacementPipelineTracker from './pipeline-tracker';
+import RecoveryPanel, { type RecoveryInfo } from '../../../src/components/RecoveryPanel';
 
 
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
@@ -257,6 +258,7 @@ type ReadinessItem = {
   };
   allEvidenceComplete: boolean;
   decision: string;
+  recovery?: RecoveryInfo;
   review?: { notes?: string | null; reviewedAt?: string | null } | null;
   expertMockInterviews: Array<{
     id: string; sequence: number; isFinal: boolean; status: string;
@@ -1275,6 +1277,8 @@ export default function PlacementsPage() {
                     ))}
                   </div>
                 </section>
+
+                <RecoveryPanel recovery={selectedReadiness.recovery} />
 
                 <section>
                   <h3 className="mb-3 font-semibold">Expert mock interviews ({selectedReadiness.expertMockInterviews.length})</h3>

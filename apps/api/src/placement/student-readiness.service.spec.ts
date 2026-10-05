@@ -11,6 +11,7 @@ import { PlacementService } from './placement.service';
 describe('PlacementService.getStudentReadiness', () => {
   const prisma = {
     candidate: { findUnique: jest.fn() },
+    placementInterview: { findMany: jest.fn() },
   };
 
   let service: PlacementService;
@@ -65,6 +66,7 @@ describe('PlacementService.getStudentReadiness', () => {
   });
 
   beforeEach(() => {
+    prisma.placementInterview.findMany.mockResolvedValue([]);
     service = new PlacementService(prisma as unknown as PrismaService);
   });
 
@@ -137,6 +139,26 @@ describe('PlacementService.getStudentReadiness', () => {
       expect(text).not.toContain('9876543210');
       expect(text).not.toContain('admin-1');
       expect(text).not.toContain('Build an API');
+    });
+
+    it('never exposes interview rejection feedback or recovery details', async () => {
+      prisma.placementInterview.findMany.mockResolvedValue(
+        [1, 2, 3, 4].map((round) => ({
+          id: `int-${round}`,
+          round,
+          title: null,
+          scheduledAt: new Date('2026-09-01T00:00:00Z'),
+          feedback: 'Weak system design answers',
+          application: { companyName: 'Acme Corp', jobTitle: 'Backend Developer' },
+        })),
+      );
+
+      const result = await run();
+      const text = JSON.stringify(result);
+
+      expect(text).not.toContain('Weak system design answers');
+      expect(text).not.toContain('Acme Corp');
+      expect(text).not.toMatch(/recovery|failedInterview/i);
     });
 
     it('exposes only the expected top-level and check fields', async () => {
