@@ -390,7 +390,8 @@ curl -X POST http://localhost:3001/api/v1/leads \
 **Convert lead to candidate:**
 
 ```bash
-curl -X GET http://localhost:3001/api/v1/leads/{leadId}/convert/{candidateId}
+curl -X POST http://localhost:3001/api/v1/leads/{leadId}/convert/{candidateId} \
+  -H "Authorization: Bearer <admin-access-token>"
 ```
 
 ## Database Schema

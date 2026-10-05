@@ -4,12 +4,12 @@ import {
   ForbiddenException,
   Param,
   Post,
-  Get,
   Req,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { SessionAuthGuard } from '../auth/guards/session-auth.guard';
+import { CreateLeadDto } from './dto/create-lead.dto';
 import { LeadService } from './lead.service';
 
 interface AuthenticatedRequest {
@@ -33,12 +33,15 @@ export class LeadController {
   }
 
   @Post()
-  @ApiOperation({ summary: 'Capture a new CRM lead' })
-  create(@Body() body: any) {
-    return this.leadService.createLead(body);
+  @ApiOperation({ summary: 'Capture a new CRM lead (public; returns only an acknowledgement)' })
+  async create(@Body() body: CreateLeadDto) {
+    // Never return the stored record: this endpoint is public, and an existing
+    // lead must not be readable by anyone who knows an email or phone number.
+    await this.leadService.createLead(body);
+    return { received: true };
   }
 
-  @Get(':id/convert/:candidateId')
+  @Post(':id/convert/:candidateId')
   @UseGuards(SessionAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Convert a lead to a candidate (admin only)' })
