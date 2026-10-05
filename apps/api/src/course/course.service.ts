@@ -215,6 +215,14 @@ export class CourseService {
           'Curriculum cannot be replaced after assignments have been added.',
         );
       }
+      const projectCount = await this.prisma.project.count({
+        where: { courseId: id },
+      });
+      if (projectCount > 0) {
+        throw new BadRequestException(
+          'Curriculum cannot be replaced after projects have been added.',
+        );
+      }
     }
 
     const course = await this.prisma.course.update({

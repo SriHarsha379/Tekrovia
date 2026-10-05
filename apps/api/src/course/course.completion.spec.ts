@@ -7,6 +7,7 @@ describe('CourseService completion rule', () => {
     lesson: { count: jest.fn(), findFirst: jest.fn() },
     lessonProgress: { count: jest.fn(), upsert: jest.fn() },
     assignment: { findMany: jest.fn(), count: jest.fn() },
+    project: { count: jest.fn() },
     assignmentSubmission: { findMany: jest.fn() },
     enrollment: { updateMany: jest.fn() },
     course: { findUnique: jest.fn(), update: jest.fn() },
@@ -193,8 +194,22 @@ describe('CourseService completion rule', () => {
       expect(prisma.course.update).not.toHaveBeenCalled();
     });
 
+    it('refuses to replace the curriculum once projects exist', async () => {
+      prisma.assignment.count.mockResolvedValue(0);
+      prisma.project.count.mockResolvedValue(1);
+
+      await expect(
+        service.adminUpdate('course-1', { curriculum }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(prisma.project.count).toHaveBeenCalledWith({
+        where: { courseId: 'course-1' },
+      });
+      expect(prisma.course.update).not.toHaveBeenCalled();
+    });
+
     it('allows replacing the curriculum when there are no assignments', async () => {
       prisma.assignment.count.mockResolvedValue(0);
+      prisma.project.count.mockResolvedValue(0);
 
       await service.adminUpdate('course-1', { curriculum });
 
