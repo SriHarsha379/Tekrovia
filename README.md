@@ -51,6 +51,9 @@ TekRovia/
 │   │   │   ├── candidate/      # Candidate profiles & registration
 │   │   │   ├── assessment/     # Assessment & scoring
 │   │   │   ├── lead/           # CRM & lead management
+│   │   │   ├── admin/          # Admin overview and student listing
+│   │   │   ├── course/         # Courses, curriculum, enrollment, progress
+│   │   │   ├── placement/      # Placement pipeline, interviews, offers, readiness review
 │   │   │   ├── prisma/         # Database layer
 │   │   │   ├── app.module.ts   # Root module
 │   │   │   └── main.ts         # Application bootstrap
@@ -58,7 +61,7 @@ TekRovia/
 │   │   └── tsconfig.json
 │   ├── web/                    # Next.js frontend
 │   │   ├── app/
-│   │   ├── components/
+│   │   ├── src/                # Components (LearningHub, assessments) and API clients
 │   │   ├── package.json
 │   │   └── tsconfig.json
 │   └── ai-service/             # FastAPI AI boundary
@@ -93,8 +96,8 @@ TekRovia/
 ### 1. Clone and Install
 
 ```bash
-git clone https://github.com/kumartharun199216-hue/TekRovia.git
-cd TekRovia
+git clone https://github.com/SriHarsha379/Tekrovia.git
+cd Tekrovia
 pnpm install
 ```
 
@@ -129,6 +132,12 @@ RAZORPAY_KEY_ID=""
 RAZORPAY_KEY_SECRET=""
 AI_SERVICE_URL="http://localhost:8000"
 ```
+
+> **Local login note:** the API returns a one-time login code in its response only when
+> `ALLOW_DEV_OTP_RESPONSE="true"` is set. `.env.example` ships with `"false"`, so change it to
+> `"true"` in your `.env.local` to log in locally. This flag is for local development only and
+> must never be enabled in production. OTP delivery by email/SMS is not implemented yet, so
+> login is currently disabled in production.
 
 ### 3. Start Infrastructure
 
@@ -503,11 +512,11 @@ pnpm install
 
 ## Contributing
 
-See CONTRIBUTING.md for guidelines on reporting bugs, suggesting features, and submitting pull requests.
+Contribution guidelines have not been published yet. Please contact the development team before submitting changes.
 
 ## License
 
-This project is proprietary. See LICENSE file for details.
+This project is proprietary. No license file has been added to the repository yet.
 
 ## Support
 
@@ -567,7 +576,9 @@ High-performance Python framework with automatic OpenAPI documentation, built-in
 ## Security
 
 - All passwords are hashed with bcryptjs
-- OTP codes expire after 5 minutes
+- OTP codes are stored hashed, expire after 5 minutes, have a resend cooldown and an attempt limit
+- Login is disabled in production until an OTP delivery provider is configured; outside
+  production the OTP is only returned when `ALLOW_DEV_OTP_RESPONSE="true"` is set
 - Sessions use signed tokens with expiry
 - CORS is enabled for local development
 - SQL injection protection via Prisma parameterized queries
