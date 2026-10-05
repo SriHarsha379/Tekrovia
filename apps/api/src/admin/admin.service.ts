@@ -28,6 +28,12 @@ export class AdminService {
       publishedCourses,
       totalEnrollments,
       activeEnrollments,
+      completedEnrollments,
+      activeLearners,
+      assignmentsAwaitingReview,
+      projectSubmissionsAwaitingReview,
+      assignmentsApproved,
+      projectMilestonesApproved,
       recentCandidates,
       leadStatuses,
     ] = await Promise.all([
@@ -40,6 +46,18 @@ export class AdminService {
       this.prisma.course.count({ where: { status: 'PUBLISHED' } }),
       this.prisma.enrollment.count(),
       this.prisma.enrollment.count({ where: { status: 'ACTIVE' } }),
+      this.prisma.enrollment.count({ where: { status: 'COMPLETED' } }),
+      this.prisma.user.count({
+        where: { enrollments: { some: { status: 'ACTIVE' } } },
+      }),
+      this.prisma.assignmentSubmission.count({
+        where: { status: 'SUBMITTED' },
+      }),
+      this.prisma.projectSubmission.count({ where: { status: 'SUBMITTED' } }),
+      this.prisma.assignmentSubmission.count({
+        where: { status: 'APPROVED' },
+      }),
+      this.prisma.projectSubmission.count({ where: { status: 'APPROVED' } }),
       this.prisma.candidate.findMany({
         take: 8,
         orderBy: { createdAt: 'desc' },
@@ -76,6 +94,22 @@ export class AdminService {
         status: item.status,
         count: item._count._all,
       })),
+      delivery: {
+        activeLearners,
+        completedEnrollments,
+        completionRate:
+          completedEnrollments + activeEnrollments > 0
+            ? Math.round(
+                (completedEnrollments /
+                  (completedEnrollments + activeEnrollments)) *
+                  100,
+              )
+            : null,
+        assignmentsAwaitingReview,
+        projectSubmissionsAwaitingReview,
+        assignmentsApproved,
+        projectMilestonesApproved,
+      },
       recentCandidates,
     };
   }
