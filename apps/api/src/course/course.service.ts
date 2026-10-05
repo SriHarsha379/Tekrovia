@@ -205,6 +205,17 @@ export class CourseService {
       );
     }
 
+    if (dto.curriculum !== undefined) {
+      const assignmentCount = await this.prisma.assignment.count({
+        where: { lesson: { module: { courseId: id } } },
+      });
+      if (assignmentCount > 0) {
+        throw new BadRequestException(
+          'Curriculum cannot be replaced after assignments have been added.',
+        );
+      }
+    }
+
     const course = await this.prisma.course.update({
       where: { id },
       data: {
@@ -466,17 +477,68 @@ export class CourseService {
     ]);
 
     if (total > 0 && completed >= total) {
-      await this.prisma.enrollment.updateMany({
-        where: {
-          userId,
-          courseId: lesson.module.courseId,
-          status: 'ACTIVE',
-        },
-        data: { status: 'COMPLETED', completedAt: new Date() },
-      });
+      await this.completeEnrollmentIfEligible(userId, lesson.module.courseId);
     }
 
     return { ...progress, courseProgress: { completed, total } };
+  }
+
+  /**
+   * Marks an ACTIVE enrollment COMPLETED only when every published lesson is
+   * complete AND every required assignment has an approved submission.
+   * Courses without required assignments follow the original lessons-only rule.
+   */
+  async completeEnrollmentIfEligible(
+    userId: string,
+    courseId: string,
+  ): Promise<boolean> {
+    const [totalLessons, completedLessons, requiredAssignments] =
+      await Promise.all([
+        this.prisma.lesson.count({
+          where: { isPublished: true, module: { courseId } },
+        }),
+        this.prisma.lessonProgress.count({
+          where: {
+            userId,
+            isCompleted: true,
+            lesson: { isPublished: true, module: { courseId } },
+          },
+        }),
+        this.prisma.assignment.findMany({
+          where: {
+            isRequired: true,
+            lesson: { isPublished: true, module: { courseId } },
+          },
+          select: { id: true },
+        }),
+      ]);
+
+    if (totalLessons === 0 || completedLessons < totalLessons) {
+      return false;
+    }
+
+    if (requiredAssignments.length > 0) {
+      const approved = await this.prisma.assignmentSubmission.findMany({
+        where: {
+          userId,
+          status: 'APPROVED',
+          assignmentId: { in: requiredAssignments.map((item) => item.id) },
+        },
+        select: { assignmentId: true },
+        distinct: ['assignmentId'],
+      });
+
+      if (approved.length < requiredAssignments.length) {
+        return false;
+      }
+    }
+
+    const result = await this.prisma.enrollment.updateMany({
+      where: { userId, courseId, status: 'ACTIVE' },
+      data: { status: 'COMPLETED', completedAt: new Date() },
+    });
+
+    return result.count > 0;
   }
 
   async myProgress(userId: string) {
