@@ -121,7 +121,7 @@ describe("ProjectReviewQueue", () => {
 
     render(<ProjectReviewQueue />);
 
-    expect(await screen.findByText(/final milestone/i)).toBeInTheDocument();
+    expect(await screen.findByText(/\(final milestone\)/i)).toBeInTheDocument();
     expect(screen.getByText(/only an administrator can review the final milestone/i)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^approve /i })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /^request changes/i })).not.toBeInTheDocument();
