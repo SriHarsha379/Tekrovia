@@ -266,7 +266,7 @@ describe('ProjectService', () => {
       const where = prisma.projectMilestone.findFirst.mock.calls[0][0].where;
       expect(where.project.course.enrollments.some).toEqual({
         userId: 'user-1',
-        status: 'ACTIVE',
+        status: { in: ['ACTIVE', 'COMPLETED'] },
       });
       expect(prisma.projectSubmission.create).not.toHaveBeenCalled();
     });

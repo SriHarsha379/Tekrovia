@@ -215,7 +215,9 @@ export class ProjectService {
         project: {
           course: {
             status: 'PUBLISHED',
-            enrollments: { some: { userId, status: 'ACTIVE' } },
+            enrollments: {
+                some: { userId, status: { in: ['ACTIVE', 'COMPLETED'] } },
+              },
           },
         },
       },

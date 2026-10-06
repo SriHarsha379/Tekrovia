@@ -142,7 +142,9 @@ export class AssignmentService {
           module: {
             course: {
               status: 'PUBLISHED',
-              enrollments: { some: { userId, status: 'ACTIVE' } },
+              enrollments: {
+                some: { userId, status: { in: ['ACTIVE', 'COMPLETED'] } },
+              },
             },
           },
         },

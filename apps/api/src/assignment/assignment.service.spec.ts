@@ -173,7 +173,7 @@ describe('AssignmentService', () => {
       const where = prisma.assignment.findFirst.mock.calls[0][0].where;
       expect(where.lesson.module.course.enrollments.some).toEqual({
         userId: 'user-1',
-        status: 'ACTIVE',
+        status: { in: ['ACTIVE', 'COMPLETED'] },
       });
       expect(prisma.assignmentSubmission.create).not.toHaveBeenCalled();
     });
