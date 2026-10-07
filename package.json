@@ -1,26 +1,29 @@
 {
   "name": "tekrovia",
-  "private": true,
   "version": "0.1.0",
-  "packageManager": "pnpm@9.0.0",
+  "description": "Learning to Placement Platform",
+  "private": true,
   "scripts": {
-    "dev": "pnpm -r --parallel run dev",
-    "build": "pnpm -r --filter './apps/*' run build",
-    "lint": "pnpm -r --parallel run lint",
-    "typecheck": "pnpm -r --parallel run typecheck",
-    "test": "pnpm -r --parallel run test",
-    "format": "prettier --write .",
-    "db:generate": "cd apps/api && pnpm prisma generate",
-    "db:migrate": "cd apps/api && pnpm prisma migrate dev",
-    "db:seed": "cd apps/api && pnpm prisma db seed",
-    "docker:up": "docker compose up -d postgres redis",
-    "docker:down": "docker compose down",
-    "check": "pnpm lint && pnpm typecheck && pnpm test"
+    "dev": "turbo run dev --parallel",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "format": "turbo run format",
+    "type-check": "turbo run typecheck",
+    "test": "turbo run test",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "db:generate": "prisma generate",
+    "db:migrate": "prisma migrate dev",
+    "db:seed": "prisma db seed",
+    "db:reset": "prisma migrate reset"
   },
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "devDependencies": {
-    "prettier": "^3.3.1",
     "prisma": "5.22.0",
-    "turbo": "^2.0.0"
+    "turbo": "^1.10.0"
   },
   "dependencies": {
     "@prisma/client": "5.22.0"
