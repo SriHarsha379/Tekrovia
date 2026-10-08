@@ -7,8 +7,9 @@ import RecoveryPanel, { type RecoveryInfo } from '../../../src/components/Recove
 import { useCallback, useEffect, useState, type FormEvent } from 'react';
 import Link from 'next/link';
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
+const API_BASE = `${
+  process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'
+}/api/v1`;
 
 const APPLICATION_STATUSES = [
   'DRAFT', 'APPLIED', 'SHORTLISTED', 'INTERVIEW',
