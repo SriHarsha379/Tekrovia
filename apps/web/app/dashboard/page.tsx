@@ -162,13 +162,15 @@ export default function DashboardPage() {
           </Card>
         </Link>
 
-        <Card className="cursor-pointer hover:shadow-lg transition-shadow">
-          <CardContent className="pt-6 text-center">
-            <Zap className="w-12 h-12 mx-auto mb-4 text-yellow-500" />
-            <h3 className="font-semibold">AI Mock</h3>
-            <p className="text-sm text-gray-500 mt-2">Practice interviews</p>
-          </CardContent>
-        </Card>
+        <Link href="/technical-assessment">
+          <Card className="cursor-pointer hover:shadow-lg transition-shadow">
+            <CardContent className="pt-6 text-center">
+              <Zap className="w-12 h-12 mx-auto mb-4 text-yellow-500" />
+              <h3 className="font-semibold">Technical Assessment</h3>
+              <p className="text-sm text-gray-500 mt-2">Test your skills</p>
+            </CardContent>
+          </Card>
+        </Link>
 
         <Link href="/placement">
           <Card className="cursor-pointer hover:shadow-lg transition-shadow">
