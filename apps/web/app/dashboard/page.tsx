@@ -133,9 +133,12 @@ export default function DashboardPage() {
                 </div>
                 <div className="flex items-center gap-4">
                   <div className="w-24 bg-gray-200 rounded-full h-2">
-                    <div className="bg-blue-500 h-2 rounded-full" style={{ width: '45%' }}></div>
+                    <div
+                      className="bg-blue-500 h-2 rounded-full"
+                      style={{ width: `${enrollment.progress ?? 0}%` }}
+                    ></div>
                   </div>
-                  <Badge variant="secondary">45%</Badge>
+                  <Badge variant="secondary">{enrollment.progress ?? 0}%</Badge>
                   <Button size="sm">Continue</Button>
                 </div>
               </div>
