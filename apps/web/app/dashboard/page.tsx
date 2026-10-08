@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
@@ -139,7 +140,9 @@ export default function DashboardPage() {
                     ></div>
                   </div>
                   <Badge variant="secondary">{enrollment.progress ?? 0}%</Badge>
-                  <Button size="sm">Continue</Button>
+                  <Link href={`/courses/${enrollment.courseId}`}>
+                    <Button size="sm">Continue</Button>
+                  </Link>
                 </div>
               </div>
             ))
