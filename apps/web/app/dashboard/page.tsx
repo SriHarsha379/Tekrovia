@@ -152,13 +152,15 @@ export default function DashboardPage() {
       </Card>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card className="cursor-pointer hover:shadow-lg transition-shadow">
-          <CardContent className="pt-6 text-center">
-            <BookOpen className="w-12 h-12 mx-auto mb-4 text-blue-500" />
-            <h3 className="font-semibold">My Learning</h3>
-            <p className="text-sm text-gray-500 mt-2">View lessons and labs</p>
-          </CardContent>
-        </Card>
+        <Link href="/work">
+          <Card className="cursor-pointer hover:shadow-lg transition-shadow">
+            <CardContent className="pt-6 text-center">
+              <BookOpen className="w-12 h-12 mx-auto mb-4 text-blue-500" />
+              <h3 className="font-semibold">My Work</h3>
+              <p className="text-sm text-gray-500 mt-2">Assignments and projects</p>
+            </CardContent>
+          </Card>
+        </Link>
 
         <Card className="cursor-pointer hover:shadow-lg transition-shadow">
           <CardContent className="pt-6 text-center">
