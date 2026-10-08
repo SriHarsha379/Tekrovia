@@ -18,7 +18,7 @@ type PlacementApplication = {
 };
 
 const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
+  `${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001'}/api/v1`;
 
 function asRecord(value: unknown): DataRecord {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
