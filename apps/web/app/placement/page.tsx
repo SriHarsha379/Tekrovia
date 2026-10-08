@@ -73,7 +73,9 @@ export default function PlacementReadinessPage() {
     {
       key: 'profile',
       label: 'Profile complete',
-      detail: 'Resume, availability and preferred schedule on file',
+      detail: readiness.profileComplete
+        ? 'All profile details on file'
+        : 'Add your resume, availability and preferred schedule',
       complete: Boolean(readiness.profileComplete),
     },
     {

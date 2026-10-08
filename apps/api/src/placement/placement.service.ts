@@ -753,7 +753,8 @@ export class PlacementService {
     const { checks } = summary;
 
     return {
-      profileComplete: true as const,
+      profileComplete:
+        summary.profileCompleteness.missingFields.length === 0,
       checks: {
         expertMocks: {
           complete: checks.expertMocks.complete,
