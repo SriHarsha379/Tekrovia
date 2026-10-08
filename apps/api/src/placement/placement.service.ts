@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -847,4 +848,161 @@ export class PlacementService {
     };
   }
 
+
+  // --- Expert mock interviews -------------------------------------------
+
+  async listCandidateMocks(candidateId: string) {
+    const candidate = await this.prisma.candidate.findUnique({
+      where: { id: candidateId },
+      select: { id: true },
+    });
+
+    if (!candidate) {
+      throw new NotFoundException('Candidate not found.');
+    }
+
+    return this.prisma.expertMockInterview.findMany({
+      where: { candidateId },
+      orderBy: { sequence: 'asc' },
+    });
+  }
+
+  async scheduleMockInterview(
+    candidateId: string,
+    body: Record<string, unknown>,
+  ) {
+    const candidate = await this.prisma.candidate.findUnique({
+      where: { id: candidateId },
+      select: { id: true },
+    });
+
+    if (!candidate) {
+      throw new NotFoundException('Candidate not found.');
+    }
+
+    const isFinal = body.isFinal === true;
+
+    const last = await this.prisma.expertMockInterview.findFirst({
+      where: { candidateId },
+      orderBy: { sequence: 'desc' },
+      select: { sequence: true },
+    });
+
+    const sequence =
+      typeof body.sequence === 'number'
+        ? body.sequence
+        : (last?.sequence ?? 0) + 1;
+
+    const existing = await this.prisma.expertMockInterview.findFirst({
+      where: { candidateId, sequence },
+      select: { id: true },
+    });
+
+    if (existing) {
+      throw new ConflictException(
+        `A mock interview with sequence ${sequence} already exists for this candidate.`,
+      );
+    }
+
+    if (isFinal) {
+      const existingFinal = await this.prisma.expertMockInterview.findFirst({
+        where: { candidateId, isFinal: true },
+        select: { id: true },
+      });
+
+      if (existingFinal) {
+        throw new ConflictException(
+          'This candidate already has a final mock interview.',
+        );
+      }
+    }
+
+    return this.prisma.expertMockInterview.create({
+      data: {
+        candidateId,
+        sequence,
+        isFinal,
+        status: 'SCHEDULED',
+        maxScore: typeof body.maxScore === 'number' ? body.maxScore : 10,
+        reviewerName:
+          typeof body.reviewerName === 'string' ? body.reviewerName.trim() : null,
+        scheduledAt:
+          typeof body.scheduledAt === 'string'
+            ? new Date(body.scheduledAt)
+            : null,
+      },
+    });
+  }
+
+  async recordMockInterviewOutcome(
+    id: string,
+    body: Record<string, unknown>,
+  ) {
+    const existing = await this.prisma.expertMockInterview.findUnique({
+      where: { id },
+    });
+
+    if (!existing) {
+      throw new NotFoundException('Mock interview not found.');
+    }
+
+    const status =
+      body.status === undefined
+        ? null
+        : enumValue(
+            body.status,
+            Object.values(ExpertMockInterviewStatus),
+            'status',
+          );
+
+    const data: Record<string, unknown> = {};
+
+    if (status) {
+      data.status = status;
+
+      if (status === ExpertMockInterviewStatus.COMPLETED) {
+        data.completedAt = new Date();
+      }
+    }
+
+    if (body.score !== undefined) {
+      if (body.score !== null && typeof body.score !== 'number') {
+        throw new BadRequestException('score must be a number.');
+      }
+
+      if (
+        typeof body.score === 'number' &&
+        (body.score < 0 || body.score > existing.maxScore)
+      ) {
+        throw new BadRequestException(
+          `score must be between 0 and ${existing.maxScore}.`,
+        );
+      }
+
+      data.score = body.score;
+    }
+
+    if (typeof body.feedback === 'string') {
+      data.feedback = body.feedback.trim() || null;
+    }
+
+    if (typeof body.reviewerName === 'string') {
+      data.reviewerName = body.reviewerName.trim() || null;
+    }
+
+    if (
+      data.status === ExpertMockInterviewStatus.COMPLETED &&
+      data.score === undefined &&
+      existing.score === null
+    ) {
+      throw new BadRequestException(
+        'A completed mock interview needs a score.',
+      );
+    }
+
+    return this.prisma.expertMockInterview.update({
+      where: { id },
+      data,
+    });
+  }
 }

@@ -177,4 +177,36 @@ export class PlacementController {
     );
   }
 
+
+  @Get('candidates/:candidateId/mocks')
+  @ApiOperation({ summary: 'List expert mock interviews for a candidate' })
+  listCandidateMocks(
+    @Req() request: AuthenticatedRequest,
+    @Param('candidateId') candidateId: string,
+  ) {
+    this.assertPlacementAccess(request);
+    return this.placementService.listCandidateMocks(candidateId);
+  }
+
+  @Post('candidates/:candidateId/mocks')
+  @ApiOperation({ summary: 'Schedule an expert mock interview for a candidate' })
+  scheduleMockInterview(
+    @Req() request: AuthenticatedRequest,
+    @Param('candidateId') candidateId: string,
+    @Body() body: Record<string, unknown>,
+  ) {
+    this.assertPlacementAccess(request);
+    return this.placementService.scheduleMockInterview(candidateId, body);
+  }
+
+  @Patch('mocks/:id')
+  @ApiOperation({ summary: 'Record the outcome and score of a mock interview' })
+  recordMockInterviewOutcome(
+    @Req() request: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body() body: Record<string, unknown>,
+  ) {
+    this.assertPlacementAccess(request);
+    return this.placementService.recordMockInterviewOutcome(id, body);
+  }
 }
