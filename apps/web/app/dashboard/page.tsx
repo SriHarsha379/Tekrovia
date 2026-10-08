@@ -168,13 +168,15 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card className="cursor-pointer hover:shadow-lg transition-shadow">
-          <CardContent className="pt-6 text-center">
-            <Target className="w-12 h-12 mx-auto mb-4 text-green-500" />
-            <h3 className="font-semibold">Placement</h3>
-            <p className="text-sm text-gray-500 mt-2">Track opportunities</p>
-          </CardContent>
-        </Card>
+        <Link href="/placement">
+          <Card className="cursor-pointer hover:shadow-lg transition-shadow">
+            <CardContent className="pt-6 text-center">
+              <Target className="w-12 h-12 mx-auto mb-4 text-green-500" />
+              <h3 className="font-semibold">Placement</h3>
+              <p className="text-sm text-gray-500 mt-2">Check your readiness</p>
+            </CardContent>
+          </Card>
+        </Link>
       </div>
     </div>
   );
