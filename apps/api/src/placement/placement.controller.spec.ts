@@ -16,6 +16,9 @@ const placementService = {
   getReadinessCandidates: jest.fn(),
   getCandidateReadiness: jest.fn(),
   reviewCandidateReadiness: jest.fn(),
+  listCandidateMocks: jest.fn(),
+  scheduleMockInterview: jest.fn(),
+  recordMockInterviewOutcome: jest.fn(),
 };
 
 type RouteName = keyof typeof placementService;
@@ -56,6 +59,18 @@ const routes: Array<{
   {
     name: 'reviewCandidateReadiness',
     call: (c, r) => c.reviewCandidateReadiness(r, 'cand-1', {}),
+  },
+  {
+    name: 'listCandidateMocks',
+    call: (c, r) => c.listCandidateMocks(r, 'cand-1'),
+  },
+  {
+    name: 'scheduleMockInterview',
+    call: (c, r) => c.scheduleMockInterview(r, 'cand-1', {}),
+  },
+  {
+    name: 'recordMockInterviewOutcome',
+    call: (c, r) => c.recordMockInterviewOutcome(r, 'mock-1', {}),
   },
 ];
 
