@@ -1,39 +1,46 @@
-import { Controller, Get, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Req, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { SessionAuthGuard } from '../auth/guards/session-auth.guard';
 import { DashboardService } from './dashboard.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
+interface AuthenticatedRequest {
+  user: {
+    id: string;
+    email: string;
+    name: string;
+    role: string;
+  };
+}
+
+@ApiTags('dashboard')
+@ApiBearerAuth()
+@UseGuards(SessionAuthGuard)
 @Controller('dashboard')
-@UseGuards(JwtAuthGuard)
 export class DashboardController {
   constructor(private readonly dashboardService: DashboardService) {}
 
   @Get('overview')
-  async getDashboardOverview(@Request() req: any) {
-    const userId = req.user.id;
-    return this.dashboardService.getDashboardOverview(userId);
+  getDashboardOverview(@Req() request: AuthenticatedRequest) {
+    return this.dashboardService.getDashboardOverview(request.user.id);
   }
 
   @Get('courses')
-  async getEnrolledCourses(@Request() req: any) {
-    const userId = req.user.id;
-    return this.dashboardService.getEnrolledCourses(userId);
+  getEnrolledCourses(@Req() request: AuthenticatedRequest) {
+    return this.dashboardService.getEnrolledCourses(request.user.id);
   }
 
   @Get('progress')
-  async getProgress(@Request() req: any) {
-    const userId = req.user.id;
-    return this.dashboardService.getProgress(userId);
+  getProgress(@Req() request: AuthenticatedRequest) {
+    return this.dashboardService.getProgress(request.user.id);
   }
 
   @Get('assessments')
-  async getAssessments(@Request() req: any) {
-    const userId = req.user.id;
-    return this.dashboardService.getAssessments(userId);
+  getAssessments(@Req() request: AuthenticatedRequest) {
+    return this.dashboardService.getAssessments(request.user.id);
   }
 
   @Get('stats')
-  async getStats(@Request() req: any) {
-    const userId = req.user.id;
-    return this.dashboardService.getUserStats(userId);
+  getStats(@Req() request: AuthenticatedRequest) {
+    return this.dashboardService.getUserStats(request.user.id);
   }
 }
