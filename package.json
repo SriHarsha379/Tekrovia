@@ -22,10 +22,18 @@
     "packages/*"
   ],
   "devDependencies": {
+    "@types/bcryptjs": "^3.0.0",
+    "@types/node": "^26.6.4",
+    "bcryptjs": "^3.0.3",
     "prisma": "5.22.0",
-    "turbo": "^1.10.0"
+    "ts-node": "^10.9.2",
+    "turbo": "^1.10.0",
+    "typescript": "^5.6.3"
   },
   "dependencies": {
     "@prisma/client": "5.22.0"
+  },
+  "prisma": {
+    "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
   }
 }
