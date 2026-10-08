@@ -52,7 +52,6 @@ export class DashboardService {
             title: true,
             description: true,
             duration: true,
-            progress: true
           }
         }
       },

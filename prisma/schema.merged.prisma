@@ -307,7 +307,7 @@ model PlacementApplication {
   createdByUser   User?                      @relation("PlacementApplicationCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
   interviews      PlacementInterview[]
   offer           PlacementOffer?
-  pipelineStage   PlacementPipelineStage     @default(PROFILE_REVIEW)
+  currentStage    PlacementPipelineStage     @default(PROFILE_REVIEW)
   pipelineHistory PlacementPipelineHistory[]
   createdAt       DateTime                   @default(now())
   updatedAt       DateTime                   @updatedAt

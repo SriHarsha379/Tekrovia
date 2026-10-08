@@ -149,7 +149,6 @@ export class AuthService {
     await this.prisma.otpCode.create({
       data: {
         userId: user.id,
-        email: user.email,
         purpose: 'login',
         code: hashOtp(otp),
         expiresAt,
