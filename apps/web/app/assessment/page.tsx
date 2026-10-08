@@ -39,7 +39,7 @@ export default function AssessmentPage() {
 
   const handleSubmit = async () => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/assessments/submit`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/assessments/free/submit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -85,20 +85,12 @@ export default function AssessmentPage() {
               <Badge variant="outline" className="mt-2">{result.readinessLevel}</Badge>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <Card>
-                <CardContent className="pt-6 text-center">
-                  <p className="text-gray-600">Correct Answers</p>
-                  <p className="text-3xl font-bold text-green-600">{result.correctAnswers}/{result.totalQuestions}</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="pt-6 text-center">
-                  <p className="text-gray-600">Overall Score</p>
-                  <p className="text-3xl font-bold text-blue-600">{result.score}/100</p>
-                </CardContent>
-              </Card>
-            </div>
+            <Card>
+              <CardContent className="pt-6 text-center">
+                <p className="text-gray-600">Correct Answers</p>
+                <p className="text-3xl font-bold text-green-600">{result.correctAnswers}/{result.scoredQuestions}</p>
+              </CardContent>
+            </Card>
 
             <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex gap-3">
               <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
@@ -122,6 +114,8 @@ export default function AssessmentPage() {
                 </Card>
               ))}
             </div>
+
+            <p className="text-xs text-gray-500 text-center">{result.disclaimer}</p>
 
             <div className="space-y-3">
               <Button className="w-full" size="lg">View Recommended Courses</Button>
