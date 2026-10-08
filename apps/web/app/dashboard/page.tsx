@@ -86,12 +86,15 @@ export default function DashboardPage() {
 
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-gray-500">Learning Hours</CardTitle>
+            <CardTitle className="text-sm font-medium text-gray-500">Lessons Completed</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold flex items-center gap-2">
               <Target className="w-8 h-8 text-green-500" />
-              {stats?.totalLearningHours || 0}h
+              {stats?.lessonsCompleted ?? 0}
+              {stats?.lessonsTotal ? (
+                <span className="text-base font-normal text-gray-400">/ {stats.lessonsTotal}</span>
+              ) : null}
             </div>
           </CardContent>
         </Card>
@@ -103,7 +106,11 @@ export default function DashboardPage() {
           <CardContent>
             <div className="text-3xl font-bold flex items-center gap-2">
               <BarChart3 className="w-8 h-8 text-purple-500" />
-              {stats?.averageScore || 0}%
+              {stats?.averageScore === null || stats?.averageScore === undefined ? (
+                <span className="text-base font-normal text-gray-400">No assessments yet</span>
+              ) : (
+                `${stats.averageScore}%`
+              )}
             </div>
           </CardContent>
         </Card>
