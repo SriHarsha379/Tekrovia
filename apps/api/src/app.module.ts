@@ -12,6 +12,7 @@ import { AssignmentModule } from './assignment/assignment.module';
 import { ProjectModule } from './project/project.module';
 import { PlacementModule } from './placement/placement.module';
 import { AdminModule } from './admin/admin.module';
+import { CheckpointModule } from './checkpoint/checkpoint.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { AdminModule } from './admin/admin.module';
     ProjectModule,
     PlacementModule,
     AdminModule,
+    CheckpointModule,
   ],
 })
 export class AppModule {}

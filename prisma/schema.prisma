@@ -74,6 +74,7 @@ model User {
   assignmentReviews            AssignmentSubmission[] @relation("AssignmentSubmissionReviewer")
   projectSubmissions           ProjectSubmission[]    @relation("ProjectSubmissionAuthor")
   projectSubmissionReviews     ProjectSubmission[]    @relation("ProjectSubmissionReviewer")
+  checkpointAttempts           CheckpointAttempt[]
 
   @@map("users")
 }
@@ -402,6 +403,7 @@ model Course {
   modules     CourseModule[]
   enrollments Enrollment[]
   projects    Project[]
+  checkpoints Checkpoint[]
 
   @@index([status, level])
   @@map("courses")
@@ -692,4 +694,82 @@ model PlacementReadinessReview {
 
   @@index([decision, updatedAt])
   @@map("placement_readiness_reviews")
+}
+
+enum CheckpointAttemptStatus {
+  IN_PROGRESS
+  PASSED
+  FAILED
+}
+
+model Checkpoint {
+  id          String   @id @default(cuid())
+  courseId    String
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  title       String
+  description String?  @db.Text
+  sortOrder   Int      @default(0)
+
+  // Inclusive range of module sortOrder values this checkpoint gates.
+  fromModuleOrder Int
+  toModuleOrder   Int
+
+  passMarkPercent Int     @default(80)
+  isPublished     Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  questions CheckpointQuestion[]
+  attempts  CheckpointAttempt[]
+
+  @@unique([courseId, sortOrder])
+  @@index([courseId])
+  @@map("checkpoints")
+}
+
+model CheckpointQuestion {
+  id           String     @id @default(cuid())
+  checkpointId String
+  checkpoint   Checkpoint @relation(fields: [checkpointId], references: [id], onDelete: Cascade)
+
+  prompt        String   @db.Text
+  options       String[]
+  correctIndex  Int
+  explanation   String?  @db.Text
+  // Links a wrong answer back to the lesson that teaches it.
+  lessonId      String?
+  sortOrder     Int      @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([checkpointId, sortOrder])
+  @@index([checkpointId])
+  @@map("checkpoint_questions")
+}
+
+model CheckpointAttempt {
+  id           String     @id @default(cuid())
+  checkpointId String
+  checkpoint   Checkpoint @relation(fields: [checkpointId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  attemptNumber Int
+  status        CheckpointAttemptStatus @default(IN_PROGRESS)
+  correctCount  Int?
+  totalQuestions Int
+  scorePercent  Int?
+  // Per-question outcome, kept for the review screen.
+  responses     Json?
+
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([checkpointId, userId, attemptNumber])
+  @@index([userId, checkpointId])
+  @@index([status])
+  @@map("checkpoint_attempts")
 }
