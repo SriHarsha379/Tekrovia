@@ -179,6 +179,7 @@ export class CheckpointService {
       },
       checkpoint: {
         id: checkpoint.id,
+        courseId: checkpoint.courseId,
         title: checkpoint.title,
         passMarkPercent: checkpoint.passMarkPercent,
       },
