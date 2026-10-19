@@ -1,4 +1,5 @@
 import * as React from "react"
+import { twMerge } from "tailwind-merge"
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "default" | "outline" | "ghost";
@@ -17,8 +18,19 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       md: "px-4 py-2 text-base",
       lg: "px-6 py-3 text-lg"
     };
+    // twMerge drops conflicting classes so a passed className actually wins,
+    // rather than depending on Tailwind's stylesheet order.
     return (
-      <button ref={ref} className={`rounded-lg font-medium transition-all disabled:opacity-50 ${variants[variant]} ${sizes[size]} ${className}`} {...props} />
+      <button
+        ref={ref}
+        className={twMerge(
+          "rounded-lg font-medium transition-all disabled:opacity-50 inline-flex items-center justify-center",
+          variants[variant],
+          sizes[size],
+          className,
+        )}
+        {...props}
+      />
     );
   }
 );
