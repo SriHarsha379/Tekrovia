@@ -33,7 +33,7 @@ export default function PricingPage() {
       <div className="text-center space-y-4 max-w-2xl mx-auto">
         <h1 className="text-4xl font-bold">Simple, Transparent Pricing</h1>
         <p className="text-lg text-gray-600">
-          Choose the plan that's right for you. Start from ₹5,000 and upgrade anytime.
+          Choose the plan that is right for you. Start from ₹5,000 and upgrade anytime.
         </p>
       </div>
 

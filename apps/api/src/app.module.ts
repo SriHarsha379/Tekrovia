@@ -1,3 +1,4 @@
+import { LearningModule } from './learning/learning.module';
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
@@ -15,7 +16,7 @@ import { AdminModule } from './admin/admin.module';
 import { CheckpointModule } from './checkpoint/checkpoint.module';
 
 @Module({
-  imports: [
+  imports: [LearningModule, 
     ConfigModule.forRoot({
       isGlobal: true,
     }),
