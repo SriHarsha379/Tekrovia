@@ -152,6 +152,23 @@ export class CourseController {
     return this.courseService.myProgress(request.user.id);
   }
 
+  @Patch('lessons/:lessonId/progress')
+  @ApiOperation({ summary: 'Save watch position; 90% watched marks the lesson complete' })
+  saveProgress(
+    @Req() request: AuthenticatedRequest,
+    @Param('lessonId') lessonId: string,
+    @Body() body: { watchedSeconds?: number; lastPositionSeconds?: number },
+  ) {
+    const watched = Number(body?.watchedSeconds ?? 0);
+    const position = Number(body?.lastPositionSeconds ?? 0);
+    if (!Number.isFinite(watched) || watched < 0) {
+      throw new BadRequestException('watchedSeconds must be a positive number.');
+    }
+    return this.courseService.saveWatchProgress(
+      request.user.id, lessonId, Math.floor(watched), Math.floor(position),
+    );
+  }
+
   @Post('lessons/:lessonId/complete')
   @ApiOperation({ summary: 'Mark an enrolled course lesson complete' })
   completeLesson(
@@ -185,6 +202,15 @@ export class CourseController {
       );
     }
     return this.courseService.create(dto);
+  }
+
+  @Get('lessons/:lessonId')
+  @ApiOperation({ summary: 'Get one lesson with its video, for an enrolled student' })
+  getLesson(
+    @Req() request: AuthenticatedRequest,
+    @Param('lessonId') lessonId: string,
+  ) {
+    return this.courseService.getLesson(request.user.id, lessonId);
   }
 
   @Get(':id')

@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -626,5 +627,93 @@ export class CourseService {
         })),
       };
     });
+  }
+
+  /** One lesson with its video. Enrollment is checked; gating is not
+   *  re-checked here because the checkpoint module owns that. */
+  async getLesson(userId: string, lessonId: string) {
+    const lesson = await this.prisma.lesson.findUnique({
+      where: { id: lessonId },
+      include: {
+        module: { select: { id: true, title: true, courseId: true, sortOrder: true } },
+        progress: { where: { userId } },
+      },
+    });
+    if (!lesson) throw new NotFoundException('Lesson not found.');
+
+    const enrollment = await this.prisma.enrollment.findUnique({
+      where: { userId_courseId: { userId, courseId: lesson.module.courseId } },
+      select: { status: true },
+    });
+    if (!enrollment || enrollment.status === 'CANCELLED') {
+      throw new ForbiddenException('You are not enrolled in this course.');
+    }
+
+    const p = lesson.progress[0];
+    return {
+      id: lesson.id,
+      title: lesson.title,
+      description: lesson.description,
+      content: lesson.content,
+      videoUrl: lesson.videoUrl,
+      duration: lesson.duration,
+      sortOrder: lesson.sortOrder,
+      module: lesson.module,
+      progress: {
+        watchedSeconds: p?.watchedSeconds ?? 0,
+        lastPositionSeconds: p?.lastPositionSeconds ?? 0,
+        isCompleted: p?.isCompleted ?? false,
+      },
+    };
+  }
+
+  /** Called by the player every few seconds. 90% watched marks complete. */
+  async saveWatchProgress(
+    userId: string,
+    lessonId: string,
+    watchedSeconds: number,
+    lastPositionSeconds: number,
+  ) {
+    const lesson = await this.prisma.lesson.findUnique({
+      where: { id: lessonId },
+      select: { duration: true, module: { select: { courseId: true } } },
+    });
+    if (!lesson) throw new NotFoundException('Lesson not found.');
+
+    const enrollment = await this.prisma.enrollment.findUnique({
+      where: { userId_courseId: { userId, courseId: lesson.module.courseId } },
+      select: { status: true },
+    });
+    if (!enrollment || enrollment.status === 'CANCELLED') {
+      throw new ForbiddenException('You are not enrolled in this course.');
+    }
+
+    const total = this.parseDuration(lesson.duration);
+    const isCompleted = total > 0 && watchedSeconds >= Math.floor(total * 0.9);
+
+    return this.prisma.lessonProgress.upsert({
+      where: { userId_lessonId: { userId, lessonId } },
+      create: {
+        userId, lessonId, watchedSeconds, lastPositionSeconds,
+        isCompleted, completedAt: isCompleted ? new Date() : null,
+      },
+      update: {
+        watchedSeconds, lastPositionSeconds,
+        ...(isCompleted ? { isCompleted: true, completedAt: new Date() } : {}),
+      },
+    });
+  }
+
+  /** Accepts "12:30", "12m", or seconds. */
+  private parseDuration(raw: string | null): number {
+    if (!raw) return 0;
+    if (/^\d+:\d{1,2}$/.test(raw)) {
+      const [m, sec] = raw.split(':').map(Number);
+      return m * 60 + sec;
+    }
+    const mins = raw.match(/^(\d+)\s*m/i);
+    if (mins) return Number(mins[1]) * 60;
+    const n = Number(raw);
+    return Number.isFinite(n) ? n : 0;
   }
 }

@@ -1,12 +1,17 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
+import {
+  Card, CardContent, CardDescription, CardHeader, CardTitle,
+} from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
-import { CheckCircle2, Circle, ArrowLeft } from 'lucide-react';
+import { CheckCircle2, Circle, ArrowLeft, Play, Lock } from 'lucide-react';
+
+const API = process.env.NEXT_PUBLIC_API_URL;
+const SAVE_EVERY_SECONDS = 5;
 
 export default function CourseDetailPage() {
   const params = useParams();
@@ -14,76 +19,123 @@ export default function CourseDetailPage() {
   const courseId = params?.courseId as string;
 
   const [course, setCourse] = useState<any>(null);
+  const [lesson, setLesson] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [pendingLessonId, setPendingLessonId] = useState<string | null>(null);
   const [error, setError] = useState('');
+  const [checkpoints, setCheckpoints] = useState<any[]>([]);
+
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const lastSavedAt = useRef(0);
+  const watched = useRef(0);
+
+  const token = () =>
+    typeof window === 'undefined'
+      ? null
+      : sessionStorage.getItem('tekrovia_access_token');
 
   const loadProgress = useCallback(async () => {
-    const token = sessionStorage.getItem('tekrovia_access_token');
-
-    if (!token) {
-      router.replace('/login');
-      return;
-    }
+    const t = token();
+    if (!t) { router.replace('/login'); return; }
 
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/courses/my/progress`,
-        { headers: { Authorization: `Bearer ${token}` } },
-      );
-
+      const res = await fetch(`${API}/api/v1/courses/my/progress`, {
+        headers: { Authorization: `Bearer ${t}` },
+      });
       if (res.status === 401) {
         sessionStorage.removeItem('tekrovia_access_token');
         router.replace('/login');
         return;
       }
-
       const data = await res.json();
-      const match = Array.isArray(data)
-        ? data.find((item: any) => item.courseId === courseId)
-        : null;
+      const cpRes = await fetch(
+        `${API}/api/v1/checkpoints/courses/${courseId}`,
+        { headers: { Authorization: `Bearer ${t}` } },
+      );
+      if (cpRes.ok) {
+        const cps = await cpRes.json();
+        setCheckpoints(Array.isArray(cps) ? cps : []);
+      }
 
-      setCourse(match ?? null);
-    } catch (err) {
-      console.error('Failed to load course progress:', err);
-      setError('Could not load this course. Please try again.');
+      setCourse(
+        Array.isArray(data)
+          ? data.find((c: any) => c.courseId === courseId) ?? null
+          : null,
+      );
+    } catch {
+      setError('Could not load this course.');
     } finally {
       setLoading(false);
     }
   }, [courseId, router]);
 
-  useEffect(() => {
-    loadProgress();
-  }, [loadProgress]);
+  useEffect(() => { loadProgress(); }, [loadProgress]);
 
-  const completeLesson = async (lessonId: string) => {
-    const token = sessionStorage.getItem('tekrovia_access_token');
-    if (!token) return;
-
-    setPendingLessonId(lessonId);
+  const openLesson = async (lessonId: string) => {
+    const t = token();
+    if (!t) return;
     setError('');
 
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/v1/courses/lessons/${lessonId}/complete`,
-        {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      );
+      const res = await fetch(`${API}/api/v1/courses/lessons/${lessonId}`, {
+        headers: { Authorization: `Bearer ${t}` },
+      });
+      if (!res.ok) { setError('Could not open that lesson.'); return; }
 
-      if (!res.ok) {
-        setError('Could not mark that lesson complete.');
-        return;
-      }
-
-      await loadProgress();
-    } catch (err) {
-      console.error('Failed to complete lesson:', err);
-      setError('Could not mark that lesson complete.');
-    } finally {
-      setPendingLessonId(null);
+      const data = await res.json();
+      watched.current = data.progress?.watchedSeconds ?? 0;
+      lastSavedAt.current = 0;
+      setLesson(data);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch {
+      setError('Could not open that lesson.');
     }
+  };
+
+  const saveProgress = useCallback(async (position: number) => {
+    const t = token();
+    if (!t || !lesson) return;
+
+    try {
+      await fetch(`${API}/api/v1/courses/lessons/${lesson.id}/progress`, {
+        method: 'PATCH',
+        headers: {
+          Authorization: `Bearer ${t}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          watchedSeconds: Math.floor(watched.current),
+          lastPositionSeconds: Math.floor(position),
+        }),
+      });
+    } catch {
+      // A dropped progress ping is not worth interrupting playback for.
+    }
+  }, [lesson]);
+
+  // Count real watched time rather than scrub position, so skipping
+  // to the end does not mark a lesson complete.
+  const onTimeUpdate = () => {
+    const el = videoRef.current;
+    if (!el) return;
+
+    const now = el.currentTime;
+    watched.current += 0.25;
+
+    if (now - lastSavedAt.current >= SAVE_EVERY_SECONDS) {
+      lastSavedAt.current = now;
+      void saveProgress(now);
+    }
+  };
+
+  const onPause = () => {
+    const el = videoRef.current;
+    if (el) void saveProgress(el.currentTime);
+  };
+
+  const onEnded = async () => {
+    const el = videoRef.current;
+    if (el) await saveProgress(el.currentTime);
+    await loadProgress();
   };
 
   if (loading) return <div className="p-8">Loading course...</div>;
@@ -101,12 +153,78 @@ export default function CourseDetailPage() {
     );
   }
 
+  // Lowest module order with an unpassed gate; everything after it is locked.
+  const blockingOrder = checkpoints
+    .filter((c: any) => !c.passed)
+    .reduce(
+      (min: number | null, c: any) =>
+        min === null ? c.toModuleOrder : Math.min(min, c.toModuleOrder),
+      null as number | null,
+    );
+
+  const isLocked = (moduleOrder: number) =>
+    blockingOrder !== null && moduleOrder > blockingOrder;
+
+  const playable =
+    lesson?.videoUrl && !lesson.videoUrl.includes('example.com');
+
   return (
-    <div className="max-w-3xl mx-auto p-8 space-y-6">
-      <Link href="/dashboard" className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900">
+    <div className="max-w-4xl mx-auto p-8 space-y-6">
+      <Link
+        href="/dashboard"
+        className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900"
+      >
         <ArrowLeft className="w-4 h-4" />
         Back to dashboard
       </Link>
+
+      {lesson ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>{lesson.title}</CardTitle>
+            {lesson.description ? (
+              <CardDescription>{lesson.description}</CardDescription>
+            ) : null}
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {playable ? (
+              <video
+                ref={videoRef}
+                src={lesson.videoUrl}
+                controls
+                className="w-full rounded-lg bg-black"
+                onLoadedMetadata={() => {
+                  const el = videoRef.current;
+                  const resume = lesson.progress?.lastPositionSeconds ?? 0;
+                  if (el && resume > 0 && resume < el.duration - 5) {
+                    el.currentTime = resume;
+                  }
+                }}
+                onTimeUpdate={onTimeUpdate}
+                onPause={onPause}
+                onEnded={onEnded}
+              />
+            ) : (
+              <div className="rounded-lg border border-dashed p-8 text-center text-gray-500">
+                <p className="font-medium">No video set for this lesson yet.</p>
+                <p className="mt-1 text-sm">
+                  An admin can add one via the lesson settings.
+                </p>
+              </div>
+            )}
+
+            {lesson.content ? (
+              <div className="prose prose-sm max-w-none text-gray-700">
+                {lesson.content}
+              </div>
+            ) : null}
+
+            <Button variant="outline" size="sm" onClick={() => setLesson(null)}>
+              Close lesson
+            </Button>
+          </CardContent>
+        </Card>
+      ) : null}
 
       <Card>
         <CardHeader>
@@ -120,9 +238,11 @@ export default function CourseDetailPage() {
             <div
               className="bg-blue-500 h-2 rounded-full transition-all"
               style={{ width: `${course.progressPercent}%` }}
-            ></div>
+            />
           </div>
-          <p className="text-sm text-gray-500">{course.progressPercent}% complete</p>
+          <p className="text-sm text-gray-500">
+            {course.progressPercent}% complete
+          </p>
         </CardContent>
       </Card>
 
@@ -132,47 +252,91 @@ export default function CourseDetailPage() {
         </div>
       ) : null}
 
-      {course.modules.map((module: any) => (
-        <Card key={module.id}>
-          <CardHeader>
-            <CardTitle className="text-lg">{module.title}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {module.lessons.map((lesson: any) => (
-              <div
-                key={lesson.id}
-                className="flex items-center justify-between gap-4 p-4 border rounded-lg"
-              >
-                <div className="flex items-start gap-3">
-                  {lesson.completed ? (
-                    <CheckCircle2 className="w-5 h-5 text-green-500 mt-0.5" />
-                  ) : (
-                    <Circle className="w-5 h-5 text-gray-300 mt-0.5" />
-                  )}
-                  <div>
-                    <p className="font-medium">{lesson.title}</p>
-                    {lesson.duration ? (
-                      <p className="text-sm text-gray-500">{lesson.duration}</p>
-                    ) : null}
-                  </div>
-                </div>
+      {course.modules.map((module: any, mIndex: number) => {
+        const locked = isLocked(mIndex);
+        const gate = checkpoints.find((c: any) => c.toModuleOrder === mIndex);
 
-                {lesson.completed ? (
-                  <Badge variant="secondary">Completed</Badge>
+        return (
+          <div key={module.id} className="space-y-3">
+            <Card className={locked ? 'opacity-60' : ''}>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-lg">{module.title}</CardTitle>
+                {locked ? (
+                  <Badge variant="outline" className="gap-1.5">
+                    <Lock className="w-3 h-3" />
+                    Locked
+                  </Badge>
+                ) : null}
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {locked ? (
+                  <p className="text-sm text-gray-500">
+                    Pass the previous checkpoint to unlock these lessons.
+                  </p>
                 ) : (
-                  <Button
-                    size="sm"
-                    disabled={pendingLessonId === lesson.id}
-                    onClick={() => completeLesson(lesson.id)}
-                  >
-                    {pendingLessonId === lesson.id ? 'Saving...' : 'Mark complete'}
-                  </Button>
+                  module.lessons.map((l: any) => (
+                    <div
+                      key={l.id}
+                      className="flex items-center justify-between gap-4 p-4 border rounded-lg"
+                    >
+                      <div className="flex items-start gap-3">
+                        {l.completed ? (
+                          <CheckCircle2 className="w-5 h-5 text-green-500 mt-0.5" />
+                        ) : (
+                          <Circle className="w-5 h-5 text-gray-300 mt-0.5" />
+                        )}
+                        <div>
+                          <p className="font-medium">{l.title}</p>
+                          {l.duration ? (
+                            <p className="text-sm text-gray-500">{l.duration}</p>
+                          ) : null}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        {l.completed ? (
+                          <Badge variant="secondary">Completed</Badge>
+                        ) : null}
+                        <Button
+                          size="sm"
+                          variant={l.completed ? 'outline' : 'default'}
+                          onClick={() => openLesson(l.id)}
+                        >
+                          <Play className="w-3.5 h-3.5 mr-1.5" />
+                          {l.completed ? 'Rewatch' : 'Watch'}
+                        </Button>
+                      </div>
+                    </div>
+                  ))
                 )}
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      ))}
+              </CardContent>
+            </Card>
+
+            {gate ? (
+              <Card className="border-blue-200 bg-blue-50/50">
+                <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
+                  <div>
+                    <p className="font-medium">{gate.title}</p>
+                    <p className="text-sm text-gray-600">
+                      {gate.passed
+                        ? `Passed with ${gate.bestScorePercent}%`
+                        : gate.unlocked
+                          ? `${gate.questionCount} questions · ${gate.passMarkPercent}% to pass`
+                          : `Finish all ${gate.lessonsTotal} lessons first (${gate.lessonsCompleted} done)`}
+                    </p>
+                  </div>
+                  <Link href="/checkpoints">
+                    <Button size="sm" variant={gate.passed ? 'outline' : 'default'}
+                      disabled={!gate.unlocked && !gate.passed}>
+                      {gate.passed ? 'Review' : 'Take checkpoint'}
+                    </Button>
+                  </Link>
+                </CardContent>
+              </Card>
+            ) : null}
+          </div>
+        );
+      })}
     </div>
   );
 }
