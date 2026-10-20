@@ -1,3 +1,8 @@
+> **Superseded.** This document describes a PostgreSQL + SQLAlchemy + Alembic
+> design that was never built. The live schema is Prisma, in
+> `prisma/schema.prisma`, and the API is NestJS in `apps/api/`.
+> Kept for the design rationale below; do not follow its stack or DDL guidance.
+
 # TekRovia — Database Schema Notes
 
 Stack assumed: **PostgreSQL + FastAPI + SQLAlchemy 2.0 (or SQLModel) + Alembic** for migrations,
