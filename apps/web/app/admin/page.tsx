@@ -101,6 +101,10 @@ export default function AdminDashboardPage() {
             </p>
           </div>
           <nav className="flex flex-wrap gap-3">
+            <Link href="/admin/leads"
+              className="rounded-xl border border-slate-700 px-4 py-3 text-sm font-semibold hover:bg-slate-800">
+              Leads
+            </Link>
             <Link href="/admin/students"
               className="rounded-xl border border-slate-700 px-4 py-3 text-sm font-semibold hover:bg-slate-800">
               Student directory
