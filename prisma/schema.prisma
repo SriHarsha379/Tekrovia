@@ -78,6 +78,8 @@ model User {
   ticketsRaised                SupportTicket[]        @relation("TicketRaiser")
   ticketsOwned                 SupportTicket[]        @relation("TicketOwner")
   ticketComments               TicketComment[]        @relation("TicketCommentAuthor")
+  batchesTrained               Batch[]                @relation("BatchTrainer")
+  batchMemberships             BatchMember[]          @relation("BatchMembership")
 
   @@map("users")
 }
@@ -407,6 +409,7 @@ model Course {
   enrollments Enrollment[]
   projects    Project[]
   checkpoints Checkpoint[]
+  batches     Batch[]
 
   @@index([status, level])
   @@map("courses")
@@ -859,4 +862,54 @@ model TicketComment {
 
   @@index([ticketId, createdAt])
   @@map("ticket_comments")
+}
+
+enum BatchStatus {
+  PLANNED
+  ENROLLING
+  RUNNING
+  COMPLETED
+  CANCELLED
+}
+
+model Batch {
+  id          String      @id @default(cuid())
+  batchCode   String      @unique
+  name        String
+  courseId    String
+  course      Course      @relation(fields: [courseId], references: [id], onDelete: Restrict)
+
+  // The blueprint plans 15 students per batch.
+  capacity    Int         @default(15)
+  status      BatchStatus @default(PLANNED)
+
+  startDate   DateTime?
+  endDate     DateTime?
+  // Free text, since schedules vary: "Mon-Fri 7-9pm IST".
+  schedule    String?
+
+  trainerId   String?
+  trainer     User?       @relation("BatchTrainer", fields: [trainerId], references: [id], onDelete: SetNull)
+
+  notes       String?     @db.Text
+  members     BatchMember[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@index([courseId, status])
+  @@index([status, startDate])
+  @@map("batches")
+}
+
+model BatchMember {
+  id        String   @id @default(cuid())
+  batchId   String
+  batch     Batch    @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation("BatchMembership", fields: [userId], references: [id], onDelete: Cascade)
+  joinedAt  DateTime @default(now())
+
+  @@unique([batchId, userId])
+  @@index([userId])
+  @@map("batch_members")
 }

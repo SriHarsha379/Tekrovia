@@ -101,6 +101,10 @@ export default function AdminDashboardPage() {
             </p>
           </div>
           <nav className="flex flex-wrap gap-3">
+            <Link href="/admin/batches"
+              className="rounded-xl border border-slate-700 px-4 py-3 text-sm font-semibold hover:bg-slate-800">
+              Batches
+            </Link>
             <Link href="/admin/support"
               className="rounded-xl border border-slate-700 px-4 py-3 text-sm font-semibold hover:bg-slate-800">
               Support queue
