@@ -1,7 +1,7 @@
 "use client";
 
 import axios from "axios";
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { adminApi } from "../lib/admin-api";
 import { safeHttpsUrl } from "../lib/safe-url";
 import AdminAssignmentEditor, { type LessonAssignment } from "./AdminAssignmentEditor";
@@ -61,8 +61,14 @@ export default function AdminLessonEditor({
   modules: AdminModule[];
   onSaved?: () => void | Promise<void>;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
   const [modules, setModules] = useState<AdminModule[]>(initialModules);
+
+  // The parent refetches courses after edits; without this the editor
+  // keeps showing the lesson list it was first handed.
+  useEffect(() => {
+    setModules(initialModules);
+  }, [initialModules]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [saving, setSaving] = useState(false);
@@ -71,6 +77,11 @@ export default function AdminLessonEditor({
 
   const lessonCount = modules.reduce(
     (total, item) => total + item.lessons.length,
+    0,
+  );
+  const missingVideo = modules.reduce(
+    (total, item) =>
+      total + item.lessons.filter((lesson: any) => !lesson.videoUrl).length,
     0,
   );
 
@@ -155,12 +166,19 @@ export default function AdminLessonEditor({
         className={smallButton}
       >
         {open
-          ? "Hide lesson editor"
-          : `Edit lesson content (${lessonCount} ${lessonCount === 1 ? "lesson" : "lessons"})`}
+          ? "Hide lesson content & videos"
+          : `Lesson content & videos (${lessonCount} ${lessonCount === 1 ? "lesson" : "lessons"})`}
       </button>
 
       {open && (
         <div className="mt-4 space-y-4">
+          {missingVideo > 0 && (
+            <div className="rounded-lg border border-amber-400/30 bg-amber-400/10 p-3 text-xs text-amber-200">
+              {missingVideo} of {lessonCount} lessons have no video yet. Students
+              see an empty player until one is added.
+            </div>
+          )}
+
           <p className="text-xs text-slate-400">
             Notes are shown to learners as plain text. Video links must start with https://.
           </p>
@@ -185,8 +203,10 @@ export default function AdminLessonEditor({
                     <div className="min-w-0">
                       <p className="break-words text-sm text-slate-200">{lesson.title}</p>
                       <p className="mt-0.5 text-xs text-slate-500">
-                        {lesson.content ? "Notes added" : "No notes"} ·{" "}
-                        {lesson.videoUrl ? "Video linked" : "No video"}
+                        <span className={lesson.videoUrl ? "text-emerald-400" : "text-amber-400"}>
+                          {lesson.videoUrl ? "✓ Video" : "⚠ No video"}
+                        </span>{" "}
+                        · {lesson.content ? "Notes added" : "No notes"}
                       </p>
                     </div>
                     {editingId !== lesson.id && (

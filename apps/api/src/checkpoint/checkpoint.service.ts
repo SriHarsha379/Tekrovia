@@ -232,6 +232,22 @@ export class CheckpointService {
     const submitted = answers as SubmittedAnswer[];
     const questions = attempt.checkpoint.questions;
 
+    // A client sending the wrong field name would otherwise score zero
+    // silently and fail the learner. Reject it instead.
+    if (submitted.length > 0) {
+      const questionIds = new Set(questions.map((question) => question.id));
+      const recognised = submitted.filter(
+        (item) =>
+          questionIds.has(item?.questionId) &&
+          typeof item?.answerIndex === 'number',
+      );
+      if (recognised.length === 0) {
+        throw new BadRequestException(
+          'No answers could be read. Each answer needs a questionId and a numeric answerIndex.',
+        );
+      }
+    }
+
     const lessonIds = questions
       .map((question) => question.lessonId)
       .filter((id): id is string => Boolean(id));
