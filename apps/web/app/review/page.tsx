@@ -180,7 +180,7 @@ export default function ReviewQueuePage() {
           {assignments.length === 0 ? (
             <p className="text-gray-500">Nothing in the queue.</p>
           ) : (
-            assignments.map((item) => (
+            assignments.map((item: any) => (
               <div key={item.id} className="rounded-lg border p-4">
                 <div className="flex items-start justify-between gap-4">
                   <div>
@@ -230,7 +230,7 @@ export default function ReviewQueuePage() {
           {milestones.length === 0 ? (
             <p className="text-gray-500">Nothing in the queue.</p>
           ) : (
-            milestones.map((item) => (
+            milestones.map((item: any) => (
               <div key={item.id} className="rounded-lg border p-4">
                 <div className="flex items-start justify-between gap-4">
                   <div>

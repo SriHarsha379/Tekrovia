@@ -1,8 +1,11 @@
 import {
+  Body,
   Controller,
+  Delete,
   ForbiddenException,
   Get,
   Param,
+  Post,
   Query,
   Req,
   UseGuards,
@@ -65,5 +68,34 @@ export class AdminController {
   ) {
     this.assertAdmin(request);
     return this.adminService.getStudent(id);
+  }
+
+  @Get('enrollable-courses')
+  @ApiOperation({ summary: 'Published courses available to enroll a student in' })
+  enrollableCourses(@Req() request: AuthenticatedRequest) {
+    this.assertAdmin(request);
+    return this.adminService.enrollableCourses();
+  }
+
+  @Post('students/:id/enrollments')
+  @ApiOperation({ summary: 'Enroll a student in a course (admin)' })
+  enrollStudent(
+    @Req() request: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Body('courseId') courseId: string,
+  ) {
+    this.assertAdmin(request);
+    return this.adminService.enrollStudent(id, courseId);
+  }
+
+  @Delete('students/:id/enrollments/:courseId')
+  @ApiOperation({ summary: 'Cancel a student enrollment (admin)' })
+  cancelEnrollment(
+    @Req() request: AuthenticatedRequest,
+    @Param('id') id: string,
+    @Param('courseId') courseId: string,
+  ) {
+    this.assertAdmin(request);
+    return this.adminService.cancelEnrollment(id, courseId);
   }
 }

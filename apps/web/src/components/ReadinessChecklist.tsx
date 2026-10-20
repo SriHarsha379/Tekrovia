@@ -122,7 +122,7 @@ export default function ReadinessChecklist() {
       </ul>
 
       <p className="mt-4 text-sm text-slate-300">
-        Review status: <span className="font-medium">{decisionLabel[data.decision]}</span>
+        Review status: <span className="font-medium">{decisionLabel[data.decision as keyof typeof decisionLabel]}</span>
       </p>
       <p className="mt-2 text-xs text-slate-500">
         Placement support is structured assistance. Completing every item does not

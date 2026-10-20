@@ -1,4 +1,5 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -311,5 +312,82 @@ export class AdminService {
       ...candidate,
       enrollments,
     };
+  }
+
+  /** Enroll another user in a course. Unlike POST /courses/:id/enroll,
+   *  which enrolls the caller, this acts on behalf of a named student. */
+  async enrollStudent(userId: string, courseId: string) {
+    const [user, course] = await Promise.all([
+      this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true, name: true, email: true, isActive: true },
+      }),
+      this.prisma.course.findUnique({
+        where: { id: courseId },
+        select: { id: true, title: true, status: true },
+      }),
+    ]);
+
+    if (!user) throw new NotFoundException('Student not found.');
+    if (!user.isActive) {
+      throw new BadRequestException('That account is deactivated.');
+    }
+    if (!course) throw new NotFoundException('Course not found.');
+    if (course.status === 'ARCHIVED') {
+      throw new BadRequestException('That course is archived.');
+    }
+
+    // Idempotent: re-enrolling reactivates rather than erroring.
+    const enrollment = await this.prisma.enrollment.upsert({
+      where: { userId_courseId: { userId, courseId } },
+      create: { userId, courseId },
+      update: { status: 'ACTIVE' },
+    });
+
+    await this.prisma.auditLog.create({
+      data: {
+        userId,
+        action: 'ADMIN_ENROLL',
+        details: { courseId, courseTitle: course.title },
+      },
+    });
+
+    return {
+      enrollment,
+      student: { id: user.id, name: user.name, email: user.email },
+      course: { id: course.id, title: course.title },
+    };
+  }
+
+  async cancelEnrollment(userId: string, courseId: string) {
+    const existing = await this.prisma.enrollment.findUnique({
+      where: { userId_courseId: { userId, courseId } },
+    });
+    if (!existing) throw new NotFoundException('That enrollment does not exist.');
+
+    const enrollment = await this.prisma.enrollment.update({
+      where: { userId_courseId: { userId, courseId } },
+      data: { status: 'CANCELLED' },
+    });
+
+    await this.prisma.auditLog.create({
+      data: { userId, action: 'ADMIN_UNENROLL', details: { courseId } },
+    });
+
+    return enrollment;
+  }
+
+  /** Published courses with enrollment counts, for the enroll dropdown. */
+  async enrollableCourses() {
+    return this.prisma.course.findMany({
+      where: { status: 'PUBLISHED' },
+      orderBy: { title: 'asc' },
+      select: {
+        id: true,
+        title: true,
+        category: true,
+        _count: { select: { enrollments: true } },
+      },
+    });
   }
 }

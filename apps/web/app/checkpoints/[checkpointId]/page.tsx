@@ -1,12 +1,11 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
-import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
-import { ArrowLeft, CheckCircle2, XCircle, BookOpen } from 'lucide-react';
+import { ArrowLeft, BookOpen } from 'lucide-react';
 
 export default function CheckpointPage() {
   const params = useParams();
@@ -80,7 +79,7 @@ export default function CheckpointPage() {
     setError('');
 
     try {
-      const payload = questions.map((question) => ({
+      const payload = questions.map((question: any) => ({
         questionId: question.id,
         answerIndex: answers[question.id],
       }));

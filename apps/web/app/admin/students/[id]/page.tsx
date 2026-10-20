@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
 import { adminApi, isAdmin, readAdminUser } from '../../../../src/lib/admin-api';
+import AdminEnrollPanel from '../../../../src/components/AdminEnrollPanel';
 
 type Assessment = {
   id: string;
@@ -159,9 +160,9 @@ function CourseProgress({ enrollment }: { enrollment: Enrollment }) {
   const allLessons = modules.flatMap((module) =>
     [...(module.lessons ?? [])].sort((a, b) => a.sortOrder - b.sortOrder),
   );
-  const publishedLessons = allLessons.filter((lesson) => lesson.isPublished);
-  const completedLessons = publishedLessons.filter((lesson) =>
-    lesson.progress?.some((progress) => progress.isCompleted),
+  const publishedLessons = allLessons.filter((lesson: any) => lesson.isPublished);
+  const completedLessons = publishedLessons.filter((lesson: any) =>
+    lesson.progress?.some((progress: any) => progress.isCompleted),
   );
 
   const total = publishedLessons.length;
@@ -244,15 +245,14 @@ function CourseProgress({ enrollment }: { enrollment: Enrollment }) {
           </p>
         ) : (
           <div className="mt-3 space-y-3">
-            {modules.map((module, moduleIndex) => {
+            {modules.map((module: any, moduleIndex: number) => {
               const lessons = [...(module.lessons ?? [])].sort(
                 (a, b) => a.sortOrder - b.sortOrder,
               );
-              const visibleLessons = lessons.filter(
-                (lesson) => lesson.isPublished,
+              const visibleLessons = lessons.filter((lesson: any) => lesson.isPublished,
               );
-              const moduleCompleted = visibleLessons.filter((lesson) =>
-                lesson.progress?.some((progress) => progress.isCompleted),
+              const moduleCompleted = visibleLessons.filter((lesson: any) =>
+                lesson.progress?.some((progress: any) => progress.isCompleted),
               ).length;
               const moduleTotal = visibleLessons.length;
               const modulePercentage =
@@ -297,10 +297,9 @@ function CourseProgress({ enrollment }: { enrollment: Enrollment }) {
 
                   {lessons.length > 0 && (
                     <ul className="mt-3 space-y-2">
-                      {lessons.map((lesson) => {
+                      {lessons.map((lesson: any) => {
                         const isCompleted = Boolean(
-                          lesson.progress?.some(
-                            (progress) => progress.isCompleted,
+                          lesson.progress?.some((progress: any) => progress.isCompleted,
                           ),
                         );
 
@@ -381,6 +380,7 @@ export default function AdminStudentDetailPage() {
   const [student, setStudent] = useState<StudentDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     const user = readAdminUser();
@@ -394,7 +394,11 @@ export default function AdminStudentDetailPage() {
     }
 
     let active = true;
-    adminApi
+    void reloadStudent();
+    return () => { active = false; };
+
+    function reloadStudent() {
+      return adminApi
       .get<StudentDetail>(`/admin/students/${encodeURIComponent(id)}`)
       .then((response) => {
         if (active) setStudent(response.data);
@@ -411,11 +415,8 @@ export default function AdminStudentDetailPage() {
       .finally(() => {
         if (active) setLoading(false);
       });
-
-    return () => {
-      active = false;
-    };
-  }, [id, router]);
+    }
+  }, [id, router, refreshKey]);
 
   return (
     <main className="min-h-screen bg-slate-950 px-5 py-10 text-slate-100 md:px-10">
@@ -561,7 +562,7 @@ export default function AdminStudentDetailPage() {
                 </p>
               ) : (
                 <div className="mt-4 space-y-3">
-                  {student.assessments.map((assessment) => (
+                  {student.assessments.map((assessment: any) => (
                     <article
                       key={assessment.id}
                       className="rounded-xl border border-slate-800 bg-slate-950/60 p-4"
@@ -616,13 +617,22 @@ export default function AdminStudentDetailPage() {
                 </span>
               </div>
 
+              <AdminEnrollPanel
+                userId={student.user.id}
+                studentName={student.fullName}
+                enrolledCourseIds={student.enrollments
+                  .filter((e: any) => e.status !== 'CANCELLED')
+                  .map((e: any) => e.course.id)}
+                onChanged={() => setRefreshKey((k) => k + 1)}
+              />
+
               {student.enrollments.length === 0 ? (
                 <p className="mt-5 rounded-xl bg-slate-950 p-5 text-sm text-slate-400">
                   No course enrollments found for this student.
                 </p>
               ) : (
                 <div className="mt-5 space-y-5">
-                  {student.enrollments.map((enrollment) => (
+                  {student.enrollments.map((enrollment: any) => (
                     <CourseProgress
                       key={enrollment.id}
                       enrollment={enrollment}

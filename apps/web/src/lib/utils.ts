@@ -25,7 +25,7 @@ export const formatPrice = (price: number, currency = '₹') => {
 export const getInitials = (name: string) => {
   return name
     .split(' ')
-    .map((n) => n[0])
+    .map((n: any) => n[0])
     .join('')
     .toUpperCase();
 };

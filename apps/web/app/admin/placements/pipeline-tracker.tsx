@@ -108,8 +108,7 @@ export default function PlacementPipelineTracker({
     if (pipelineStageCounts) {
       return pipelineStageCounts[stage] ?? 0;
     }
-    return applications.filter(
-      (application) => application.pipelineStage === stage,
+    return applications.filter((application: any) => application.pipelineStage === stage,
     ).length;
   };
 
@@ -146,7 +145,7 @@ export default function PlacementPipelineTracker({
       </div>
 
       <div className="grid gap-3 p-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {STAGES.map((stage) => {
+        {STAGES.map((stage: any) => {
           const active = selectedStage === stage.stage;
           const count = countFor(stage.stage);
           const share = totalPipelineCount > 0

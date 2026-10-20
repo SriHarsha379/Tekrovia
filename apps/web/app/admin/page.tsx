@@ -140,11 +140,11 @@ export default function AdminDashboardPage() {
           <>
             <DeliveryOverview delivery={data.delivery} />
             <section aria-label="Platform statistics" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {cards.map((card) => (
+              {cards.map((card: any) => (
                 <article key={card.key} className="rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-lg shadow-black/10">
                   <p className="text-sm text-slate-400">{card.label}</p>
                   <p className={`mt-3 text-4xl font-bold tabular-nums ${card.color}`}>
-                    {data.counts[card.key].toLocaleString('en-IN')}
+                    {(data.counts as Record<string, number>)[card.key].toLocaleString('en-IN')}
                   </p>
                 </article>
               ))}
@@ -177,7 +177,7 @@ export default function AdminDashboardPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {data.recentCandidates.map((student) => (
+                        {data.recentCandidates.map((student: any) => (
                           <tr key={student.id} className="border-t border-slate-800">
                             <td className="py-4 pr-4">
                               <Link href={`/admin/students/${encodeURIComponent(student.id)}`}
@@ -217,7 +217,7 @@ export default function AdminDashboardPage() {
                     <p className="mt-3 text-sm text-slate-500">No lead records yet.</p>
                   ) : (
                     <ul className="mt-3 space-y-2">
-                      {data.leadStatuses.map((item) => (
+                      {data.leadStatuses.map((item: any) => (
                         <li key={item.status} className="flex justify-between gap-3 text-sm">
                           <span className="text-slate-400">{item.status.replace(/_/g, ' ')}</span>
                           <span className="font-semibold tabular-nums">{item.count}</span>

@@ -145,7 +145,7 @@ export default function AssignmentsPanel() {
       )}
 
       <div className="space-y-4">
-        {items.map((item) => {
+        {items.map((item: any) => {
           const canSubmit =
             item.latestStatus === null ||
             item.latestStatus === "CHANGES_REQUESTED";
@@ -172,9 +172,9 @@ export default function AssignmentsPanel() {
                   </span>
                   {item.latestStatus && (
                     <span
-                      className={`rounded-full px-3 py-1 text-xs ${statusClass[item.latestStatus]}`}
+                      className={`rounded-full px-3 py-1 text-xs ${statusClass[item.latestStatus as keyof typeof statusClass]}`}
                     >
-                      {statusLabel[item.latestStatus]}
+                      {statusLabel[item.latestStatus as keyof typeof statusLabel]}
                     </span>
                   )}
                 </div>
@@ -189,7 +189,7 @@ export default function AssignmentsPanel() {
                   <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
                     Your attempts
                   </p>
-                  {item.submissions.map((attempt) => {
+                  {item.submissions.map((attempt: any) => {
                     const link = safeHttpsUrl(attempt.submissionUrl);
                     return (
                       <div
@@ -198,7 +198,7 @@ export default function AssignmentsPanel() {
                       >
                         <p className="text-xs text-slate-400">
                           Attempt {attempt.attemptNumber} ·{" "}
-                          {statusLabel[attempt.status]}
+                          {statusLabel[attempt.status as keyof typeof statusLabel]}
                         </p>
                         {attempt.submissionText && (
                           <div className="mt-2 whitespace-pre-wrap break-words text-sm text-slate-200">

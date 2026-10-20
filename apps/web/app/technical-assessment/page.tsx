@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
-import { ArrowLeft, CheckCircle2, XCircle } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 
 export default function TechnicalAssessmentPage() {
   const router = useRouter();
@@ -75,7 +75,7 @@ export default function TechnicalAssessmentPage() {
     setError('');
 
     try {
-      const payload = questions.map((question) => ({
+      const payload = questions.map((question: any) => ({
         questionId: question.id,
         answerIndex: answers[question.id],
       }));

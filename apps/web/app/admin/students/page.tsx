@@ -130,7 +130,7 @@ export default function AdminStudentsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {result.data.map((student) => (
+                    {result.data.map((student: any) => (
                       <tr key={student.id} className="border-b border-slate-800 last:border-0">
                         <td className="px-4 py-4">
                           <p className="font-semibold">{student.fullName}</p>

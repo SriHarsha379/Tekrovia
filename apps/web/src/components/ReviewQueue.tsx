@@ -135,7 +135,7 @@ export default function ReviewQueue() {
   return (
     <section aria-label="Assignment review queue" className="space-y-5">
       <div className="flex flex-wrap gap-2">
-        {tabs.map((tab) => (
+        {tabs.map((tab: any) => (
           <button
             key={tab.status}
             type="button"
@@ -179,7 +179,7 @@ export default function ReviewQueue() {
         </div>
       ) : (
         <div className="space-y-4">
-          {data.items.map((item) => {
+          {data.items.map((item: any) => {
             const link = safeHttpsUrl(item.submissionUrl);
             const canAct = item.status === "SUBMITTED";
 

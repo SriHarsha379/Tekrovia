@@ -128,9 +128,9 @@ export default function AdminLessonEditor({
       );
       const updated = response.data;
       setModules((current) =>
-        current.map((item) => ({
+        current.map((item: any) => ({
           ...item,
-          lessons: item.lessons.map((lesson) =>
+          lessons: item.lessons.map((lesson: any) =>
             lesson.id === editingId ? { ...lesson, ...updated } : lesson,
           ),
         })),
@@ -176,10 +176,10 @@ export default function AdminLessonEditor({
             </div>
           )}
 
-          {modules.map((item) => (
+          {modules.map((item: any) => (
             <div key={item.id} className="space-y-2">
               <h4 className="text-sm font-medium text-slate-200">{item.title}</h4>
-              {item.lessons.map((lesson) => (
+              {item.lessons.map((lesson: any) => (
                 <div key={lesson.id} className="rounded-xl border border-white/10 bg-slate-950/50 p-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div className="min-w-0">

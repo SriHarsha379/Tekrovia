@@ -8,7 +8,7 @@ import { Check } from 'lucide-react';
 import Link from 'next/link';
 
 export default function PricingPage() {
-  const [products, setProducts] = useState([]);
+  const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -38,7 +38,7 @@ export default function PricingPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
-        {products.map(product => (
+        {products.map((product: any) => (
           <Card 
             key={product.id} 
             className={`relative transition-all hover:shadow-lg ${
@@ -73,7 +73,7 @@ export default function PricingPage() {
               </Button>
 
               <div className="space-y-3">
-                {product.features.map((feature, idx) => (
+                {product.features.map((feature: any, idx: number) => (
                   <div key={idx} className="flex items-start gap-3">
                     <Check className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
                     <span className="text-sm">{feature}</span>
@@ -106,7 +106,7 @@ export default function PricingPage() {
               q: 'What if I need help choosing?',
               a: 'Book a free 15-min consultation with our counselors. They will recommend the best plan.'
             }
-          ].map((faq, idx) => (
+          ].map((faq: any, idx: number) => (
             <Card key={idx}>
               <CardContent className="pt-6">
                 <h3 className="font-semibold mb-2">{faq.q}</h3>

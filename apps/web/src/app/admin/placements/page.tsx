@@ -230,7 +230,7 @@ export default function PlacementsPage() {
 
           {loading && !overview ? (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {Array.from({ length: 6 }).map((_, index) => (
+              {Array.from({ length: 6 }).map((_: any, index: number) => (
                 <div
                   key={index}
                   className="h-28 animate-pulse rounded-xl border border-slate-200 bg-white"
@@ -320,7 +320,7 @@ export default function PlacementsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {applications.map((application, index) => (
+                {applications.map((application: any, index: number) => (
                   <tr
                     key={application.id ?? `${application.candidateId ?? 'app'}-${index}`}
                     className="hover:bg-slate-50"

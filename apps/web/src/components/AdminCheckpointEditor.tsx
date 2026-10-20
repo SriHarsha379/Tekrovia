@@ -180,7 +180,7 @@ export default function AdminCheckpointEditor({
         `${API_BASE_URL}/checkpoints/admin/${cp.id}/questions`,
         {
           prompt: draft.prompt,
-          options: draft.options.filter((o) => o.trim()),
+          options: draft.options.filter((o: any) => o.trim()),
           correctIndex: draft.correctIndex,
           explanation: draft.explanation,
           lessonId: draft.lessonId || null,
@@ -266,7 +266,7 @@ export default function AdminCheckpointEditor({
               value={afterModule}
               onChange={(e) => setAfterModule(Number(e.target.value))}
             >
-              {modules.map((m, i) => (
+              {modules.map((m: any, i: number) => (
                 <option key={m.id} value={m.sortOrder ?? i}>
                   {i + 1}. {m.title}
                 </option>
@@ -307,7 +307,7 @@ export default function AdminCheckpointEditor({
           No checkpoints yet. Students move through every module unguarded.
         </p>
       ) : (
-        checkpoints.map((cp) => (
+        checkpoints.map((cp: any) => (
           <div key={cp.id} className="space-y-3 rounded-lg border border-slate-700 p-3">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div>
@@ -346,7 +346,7 @@ export default function AdminCheckpointEditor({
               </div>
             </div>
 
-            {cp.questions.map((q, qi) => (
+            {cp.questions.map((q: any, qi: number) => (
               <div
                 key={q.id}
                 className="flex items-start justify-between gap-3 rounded-lg bg-slate-900/60 p-3"
@@ -356,7 +356,7 @@ export default function AdminCheckpointEditor({
                     {qi + 1}. {q.prompt}
                   </p>
                   <ul className="mt-1 space-y-0.5 text-slate-400">
-                    {q.options.map((o, oi) => (
+                    {q.options.map((o: any, oi: number) => (
                       <li
                         key={oi}
                         className={oi === q.correctIndex ? "text-emerald-300" : ""}
@@ -388,7 +388,7 @@ export default function AdminCheckpointEditor({
                   />
                 </label>
 
-                {draft.options.map((opt, oi) => (
+                {draft.options.map((opt: any, oi: number) => (
                   <div key={oi} className="flex items-center gap-2">
                     <input
                       type="radio"
@@ -432,7 +432,7 @@ export default function AdminCheckpointEditor({
                     onChange={(e) => setDraft({ ...draft, lessonId: e.target.value })}
                   >
                     <option value="">No lesson link</option>
-                    {lessons.map((l) => (
+                    {lessons.map((l: any) => (
                       <option key={l.id} value={l.id}>
                         {l.module?.title} · {l.title}
                       </option>

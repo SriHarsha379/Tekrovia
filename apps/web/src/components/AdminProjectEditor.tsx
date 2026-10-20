@@ -66,7 +66,7 @@ function toDraft(project: AdminProject): Draft {
     expectedOutcome: project.expectedOutcome,
     resources: project.resources ?? "",
     isRequired: project.isRequired,
-    milestones: project.milestones.map((milestone) => ({
+    milestones: project.milestones.map((milestone: any) => ({
       title: milestone.title,
       description: milestone.description ?? "",
       dueOffsetDays:
@@ -100,7 +100,7 @@ export default function AdminProjectEditor({
       current
         ? {
             ...current,
-            milestones: current.milestones.map((item, itemIndex) =>
+            milestones: current.milestones.map((item: any, itemIndex: number) =>
               itemIndex === index ? { ...item, [key]: value } : item,
             ),
           }
@@ -121,7 +121,7 @@ export default function AdminProjectEditor({
       current && current.milestones.length > 1
         ? {
             ...current,
-            milestones: current.milestones.filter((_, itemIndex) => itemIndex !== index),
+            milestones: current.milestones.filter((_: any, itemIndex: number) => itemIndex !== index),
           }
         : current,
     );
@@ -198,7 +198,7 @@ export default function AdminProjectEditor({
 
       setProjects((current) =>
         draft.id
-          ? current.map((item) => (item.id === saved.id ? saved : item))
+          ? current.map((item: any) => (item.id === saved.id ? saved : item))
           : [...current, saved],
       );
       setDraft(null);
@@ -242,7 +242,7 @@ export default function AdminProjectEditor({
             </div>
           )}
 
-          {projects.map((project) => (
+          {projects.map((project: any) => (
             <div key={project.id} className="rounded-xl border border-white/10 bg-slate-950/50 p-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="min-w-0">
@@ -321,7 +321,7 @@ export default function AdminProjectEditor({
                 <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
                   Milestones
                 </p>
-                {draft.milestones.map((milestone, index) => (
+                {draft.milestones.map((milestone: any, index: number) => (
                   <div key={index} className="space-y-2 rounded-lg border border-white/10 p-3">
                     <div className="flex items-center justify-between">
                       <span className="text-xs text-slate-400">

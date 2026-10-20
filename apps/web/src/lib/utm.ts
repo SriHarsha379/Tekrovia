@@ -19,7 +19,7 @@ function clean(value: unknown): string | undefined {
   if (typeof value !== "string") return undefined;
 
   const printable = Array.from(value)
-    .filter((character) => {
+    .filter((character: any) => {
       const code = character.charCodeAt(0);
       return code >= 32 && code !== 127;
     })

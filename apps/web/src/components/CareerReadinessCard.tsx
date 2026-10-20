@@ -220,7 +220,7 @@ export default function CareerReadinessCard({
                 Recommended next steps
               </h3>
               <ol className="mt-3 space-y-3">
-                {roadmapItems.map((item, index) => (
+                {roadmapItems.map((item: any, index: number) => (
                   <li
                     key={index}
                     className="flex gap-3 rounded-xl border border-white/10 bg-slate-950/40 p-4"

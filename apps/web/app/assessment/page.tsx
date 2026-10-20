@@ -8,11 +8,11 @@ import { Progress } from '../components/ui/progress';
 import { CheckCircle, AlertCircle } from 'lucide-react';
 
 export default function AssessmentPage() {
-  const [assessment, setAssessment] = useState(null);
+  const [assessment, setAssessment] = useState<any>(null);
   const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [answers, setAnswers] = useState({});
+  const [answers, setAnswers] = useState<Record<string, string | number>>({});
   const [submitted, setSubmitted] = useState(false);
-  const [result, setResult] = useState(null);
+  const [result, setResult] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -30,7 +30,7 @@ export default function AssessmentPage() {
     fetchAssessment();
   }, []);
 
-  const handleAnswerChange = (questionId, answer) => {
+  const handleAnswerChange = (questionId: string, answer: string | number) => {
     setAnswers(prev => ({
       ...prev,
       [questionId]: answer
@@ -99,7 +99,7 @@ export default function AssessmentPage() {
 
             <div className="space-y-3">
               <h3 className="font-semibold">Recommended Learning Path</h3>
-              {result.roadmap.map((phase, idx) => (
+              {result.roadmap.map((phase: any, idx: number) => (
                 <Card key={idx} className="bg-gradient-to-r from-blue-50 to-transparent">
                   <CardContent className="pt-6">
                     <div className="flex items-start justify-between">
@@ -156,7 +156,7 @@ export default function AssessmentPage() {
 
           {question.type === 'MULTIPLE_CHOICE' && (
             <div className="space-y-3">
-              {question.options.map((option, idx) => (
+              {question.options.map((option: any, idx: number) => (
                 <label key={idx} className="flex items-center p-4 border rounded-lg cursor-pointer hover:bg-blue-50 transition">
                   <input
                     type="radio"
@@ -175,7 +175,7 @@ export default function AssessmentPage() {
           {question.type === 'SHORT_ANSWER' && (
             <textarea
               placeholder="Type your answer here..."
-              value={answers[question.id] || ''}
+              value={String(answers[question.id] ?? '')}
               onChange={(e) => handleAnswerChange(question.id, e.target.value)}
               className="w-full p-3 border rounded-lg min-h-32 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />

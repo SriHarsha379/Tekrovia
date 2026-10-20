@@ -191,11 +191,10 @@ export default function DashboardPage() {
   }
 
   const { overview, courses, stats } = data;
-  const activeCourses = courses.filter(
-    (course) => course.status !== 'CANCELLED',
+  const activeCourses = courses.filter((course: any) => course.status !== 'CANCELLED',
   );
   const nextCourse =
-    activeCourses.find((course) => getProgress(course.progress) < 100) ??
+    activeCourses.find((course: any) => getProgress(course.progress) < 100) ??
     activeCourses[0];
 
   const lessonsCompleted =
@@ -339,7 +338,7 @@ export default function DashboardPage() {
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            {statCards.map((item) => {
+            {statCards.map((item: any) => {
               const Icon = item.icon;
 
               return (
@@ -412,7 +411,7 @@ export default function DashboardPage() {
               </Card>
             ) : (
               <div className="space-y-4">
-                {activeCourses.map((course) => {
+                {activeCourses.map((course: any) => {
                   const progress = getProgress(course.progress);
                   const completed = progress >= 100;
 

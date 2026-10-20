@@ -592,7 +592,7 @@ export default function PlacementsPage() {
     }
   };
 
-  const visibleApplications = applications.filter((application) =>
+  const visibleApplications = applications.filter((application: any) =>
     !pipelineStageFilter || application.pipelineStage === pipelineStageFilter
   );
 
@@ -617,7 +617,7 @@ export default function PlacementsPage() {
       return `"${text.replace(/"/g, '""')}"`;
     };
 
-    const rows = visibleApplications.map((application) => [
+    const rows = visibleApplications.map((application: any) => [
       application.candidateId,
       application.companyName,
       application.jobTitle,
@@ -634,7 +634,7 @@ export default function PlacementsPage() {
 
     const csv = [
       headers.map(escapeCsv).join(','),
-      ...rows.map((row) => row.map(escapeCsv).join(',')),
+      ...rows.map((row: any) => row.map(escapeCsv).join(',')),
     ].join('\\r\\n');
 
     const blob = new Blob(['\\uFEFF', csv], {
@@ -693,7 +693,7 @@ export default function PlacementsPage() {
       const items: ReadinessItem[] = Array.isArray(payload?.items) ? payload.items : [];
       setReadinessItems(items);
       setSelectedReadiness((current) =>
-        current ? items.find((item) => item.candidateId === current.candidateId) ?? null : null
+        current ? items.find((item: any) => item.candidateId === current.candidateId) ?? null : null
       );
     } catch (error) {
       setReadinessError(error instanceof Error ? error.message : "Unable to load readiness records.");
@@ -736,7 +736,7 @@ export default function PlacementsPage() {
 
   const readinessSearchTerm = readinessSearch.trim().toLowerCase();
 
-  const filteredReadinessItems = readinessItems.filter((item) => {
+  const filteredReadinessItems = readinessItems.filter((item: any) => {
     const matchesSearch =
       !readinessSearchTerm ||
       item.candidateId.toLowerCase().includes(readinessSearchTerm) ||
@@ -749,9 +749,9 @@ export default function PlacementsPage() {
     );
   });
 
-  const readinessCompleteCount = readinessItems.filter((item) => item.allEvidenceComplete).length;
-  const readinessPendingCount = readinessItems.filter((item) => item.decision === "PENDING").length;
-  const readinessApprovedCount = readinessItems.filter((item) => item.decision === "APPROVED").length;
+  const readinessCompleteCount = readinessItems.filter((item: any) => item.allEvidenceComplete).length;
+  const readinessPendingCount = readinessItems.filter((item: any) => item.decision === "PENDING").length;
+  const readinessApprovedCount = readinessItems.filter((item: any) => item.decision === "APPROVED").length;
 
   const activeApplicationCount = ["APPLIED", "SHORTLISTED", "INTERVIEW", "OFFERED"]
     .reduce((total, status) => total + (overview?.applicationCounts?.[status] ?? 0), 0);
@@ -869,7 +869,7 @@ export default function PlacementsPage() {
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {analyticsCards.map((card) => (
+            {analyticsCards.map((card: any) => (
               <article
                 key={card.label}
                 className="rounded-xl border border-slate-800 bg-slate-900 p-5 shadow-sm"
@@ -955,7 +955,7 @@ export default function PlacementsPage() {
               className={`${inputClass} md:w-48`}
             >
               <option value="">All statuses</option>
-              {APPLICATION_STATUSES.map((value) => (
+              {APPLICATION_STATUSES.map((value: any) => (
                 <option key={value} value={value}>{pretty(value)}</option>
               ))}
             </select>
@@ -966,13 +966,13 @@ export default function PlacementsPage() {
             <table className="w-full min-w-[780px] text-left text-sm">
               <thead className="bg-slate-800/70 text-xs uppercase tracking-wide text-slate-400">
                 <tr>
-                  {['Candidate ID', 'Company', 'Job title', 'Application status', 'Pipeline stage', 'Updated', 'Application'].map((heading) => (
+                  {['Candidate ID', 'Company', 'Job title', 'Application status', 'Pipeline stage', 'Updated', 'Application'].map((heading: any) => (
                     <th key={heading} className="px-5 py-3 font-semibold">{heading}</th>
                   ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {visibleApplications.map((application) => (
+                {visibleApplications.map((application: any) => (
                   <tr key={application.id} className="hover:bg-slate-950">
                     <td className="px-5 py-4 font-medium">{application.candidateId}</td>
                     <td className="px-5 py-4">{application.companyName}</td>
@@ -1102,7 +1102,7 @@ export default function PlacementsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {filteredReadinessItems.map((item) => (
+                  {filteredReadinessItems.map((item: any) => (
                     <tr key={item.candidateId} className="hover:bg-slate-950">
                       <td className="px-5 py-4">
                         <div className="min-w-48">
@@ -1265,7 +1265,7 @@ export default function PlacementsPage() {
                           ? "No formal interactive assessment score recorded"
                           : `${selectedReadiness.checks.technicalAssessment.score} / ${selectedReadiness.checks.technicalAssessment.maxScore ?? "—"}`,
                       },
-                    ].map((check) => (
+                    ].map((check: any) => (
                       <article key={check.label} className="flex items-start gap-3 rounded-xl border border-slate-800 p-3">
                         <span className={`mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
                           check.complete ? "bg-emerald-100 text-emerald-700" : "bg-amber-950/50 text-amber-700"
@@ -1285,7 +1285,7 @@ export default function PlacementsPage() {
                   <h3 className="mb-3 font-semibold">Expert mock interviews ({selectedReadiness.expertMockInterviews.length})</h3>
                   {selectedReadiness.expertMockInterviews.length ? (
                     <div className="space-y-2">
-                      {selectedReadiness.expertMockInterviews.map((mock) => (
+                      {selectedReadiness.expertMockInterviews.map((mock: any) => (
                         <article key={mock.id} className="rounded-xl border border-slate-800 p-3">
                           <div className="flex flex-wrap justify-between gap-2">
                             <p className="text-sm font-medium">{mock.isFinal ? "Final expert mock" : `Expert mock ${mock.sequence}`}</p>
@@ -1305,7 +1305,7 @@ export default function PlacementsPage() {
                   <h3 className="mb-3 font-semibold">Project reviews ({selectedReadiness.projectReviews.length})</h3>
                   {selectedReadiness.projectReviews.length ? (
                     <div className="space-y-2">
-                      {selectedReadiness.projectReviews.map((project) => (
+                      {selectedReadiness.projectReviews.map((project: any) => (
                         <article key={project.id} className="rounded-xl border border-slate-800 p-3">
                           <div className="flex flex-wrap justify-between gap-2">
                             <p className="text-sm font-medium">{project.projectName}</p>
@@ -1328,7 +1328,7 @@ export default function PlacementsPage() {
                   </p>
                   {selectedReadiness.technicalAssessments.length ? (
                     <div className="space-y-2">
-                      {selectedReadiness.technicalAssessments.map((assessment) => (
+                      {selectedReadiness.technicalAssessments.map((assessment: any) => (
                         <article key={assessment.id} className="rounded-xl border border-slate-800 p-3">
                           <p className="text-sm font-medium">Technical assessment</p>
                           <p className="mt-1 text-xs text-slate-300">
@@ -1413,12 +1413,12 @@ export default function PlacementsPage() {
                 <Field label="Employment type">
                   <select value={form.employmentType} onChange={(e) => setForm({ ...form, employmentType: e.target.value })} className={inputClass}>
                     <option value="">Select type</option>
-                    {['FULL_TIME', 'PART_TIME', 'CONTRACT', 'INTERNSHIP', 'REMOTE'].map((v) => <option key={v} value={v}>{pretty(v)}</option>)}
+                    {['FULL_TIME', 'PART_TIME', 'CONTRACT', 'INTERNSHIP', 'REMOTE'].map((v: any) => <option key={v} value={v}>{pretty(v)}</option>)}
                   </select>
                 </Field>
                 <Field label="Application status">
                   <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })} className={inputClass}>
-                    {APPLICATION_STATUSES.map((v) => <option key={v} value={v}>{pretty(v)}</option>)}
+                    {APPLICATION_STATUSES.map((v: any) => <option key={v} value={v}>{pretty(v)}</option>)}
                   </select>
                 </Field>
                 <Field label="Source">
@@ -1470,7 +1470,7 @@ export default function PlacementsPage() {
                       <Field label="Job title *"><input required className={inputClass} value={form.jobTitle} onChange={(e) => setForm({ ...form, jobTitle: e.target.value })} /></Field>
                       <Field label="Location"><input className={inputClass} value={form.jobLocation} onChange={(e) => setForm({ ...form, jobLocation: e.target.value })} /></Field>
                       <Field label="Employment type"><input className={inputClass} value={form.employmentType} onChange={(e) => setForm({ ...form, employmentType: e.target.value })} /></Field>
-                      <Field label="Status"><select className={inputClass} value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>{APPLICATION_STATUSES.map((v) => <option key={v} value={v}>{pretty(v)}</option>)}</select></Field>
+                      <Field label="Status"><select className={inputClass} value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>{APPLICATION_STATUSES.map((v: any) => <option key={v} value={v}>{pretty(v)}</option>)}</select></Field>
                       <Field label="Applied date"><input type="date" className={inputClass} value={form.appliedAt} onChange={(e) => setForm({ ...form, appliedAt: e.target.value })} /></Field>
                       <Field label="Source"><input className={inputClass} value={form.source} onChange={(e) => setForm({ ...form, source: e.target.value })} /></Field>
                     </div>
@@ -1530,7 +1530,7 @@ export default function PlacementsPage() {
                         void updatePipelineStage(nextStage, note);
                       }}
                     >
-                      {PIPELINE_STAGES.map((stage) => (
+                      {PIPELINE_STAGES.map((stage: any) => (
                         <option key={stage} value={stage}>{pretty(stage)}</option>
                       ))}
                     </select>
@@ -1552,7 +1552,7 @@ export default function PlacementsPage() {
                   <h4 className="mb-3 font-semibold">Stage history</h4>
                   {selected.pipelineHistory?.length ? (
                     <ol className="space-y-3">
-                      {selected.pipelineHistory.map((entry) => (
+                      {selected.pipelineHistory.map((entry: any) => (
                         <li key={entry.id} className="relative rounded-xl border border-slate-800 bg-slate-950 p-4">
                           <div className="flex flex-wrap items-center justify-between gap-2">
                             <p className="text-sm font-semibold">
@@ -1590,7 +1590,7 @@ export default function PlacementsPage() {
               <section className="border-t border-slate-800 pt-6">
                 <h3 className="mb-4 text-lg font-semibold">Interviews ({selected.interviews?.length ?? 0})</h3>
                 <div className="space-y-3">
-                  {(selected.interviews ?? []).map((interview) => (
+                  {(selected.interviews ?? []).map((interview: any) => (
                     <article key={interview.id} className="rounded-xl border border-slate-800 p-4">
                       <div className="flex flex-wrap items-start justify-between gap-2">
                         <div>
@@ -1603,8 +1603,8 @@ export default function PlacementsPage() {
                         <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusStyle(interview.status)}`}>{pretty(interview.status)}</span>
                       </div>
                       <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                        <Field label="Interview status"><select className={inputClass} value={interview.status ?? 'SCHEDULED'} onChange={(e) => void updateInterview(interview, { status: e.target.value })} disabled={saving}>{INTERVIEW_STATUSES.map((v) => <option key={v} value={v}>{pretty(v)}</option>)}</select></Field>
-                        <Field label="Outcome"><select className={inputClass} value={interview.outcome ?? 'PENDING'} onChange={(e) => void updateInterview(interview, { outcome: e.target.value })} disabled={saving}>{INTERVIEW_OUTCOMES.map((v) => <option key={v} value={v}>{pretty(v)}</option>)}</select></Field>
+                        <Field label="Interview status"><select className={inputClass} value={interview.status ?? 'SCHEDULED'} onChange={(e) => void updateInterview(interview, { status: e.target.value })} disabled={saving}>{INTERVIEW_STATUSES.map((v: any) => <option key={v} value={v}>{pretty(v)}</option>)}</select></Field>
+                        <Field label="Outcome"><select className={inputClass} value={interview.outcome ?? 'PENDING'} onChange={(e) => void updateInterview(interview, { outcome: e.target.value })} disabled={saving}>{INTERVIEW_OUTCOMES.map((v: any) => <option key={v} value={v}>{pretty(v)}</option>)}</select></Field>
                         <Field label="Feedback"><input className={inputClass} defaultValue={interview.feedback ?? ''} placeholder="Feedback" onBlur={(e) => { if (e.target.value !== (interview.feedback ?? '')) void updateInterview(interview, { feedback: e.target.value }); }} disabled={saving} /></Field>
                       </div>
                     </article>
@@ -1641,7 +1641,7 @@ export default function PlacementsPage() {
                     </div>
                     <Field label="Update offer status">
                       <select className={inputClass} value={selected.offer.status ?? 'PENDING'} disabled={saving} onChange={(e) => void updateOffer(selected.offer!, { status: e.target.value })}>
-                        {OFFER_STATUSES.map((v) => <option key={v} value={v}>{pretty(v)}</option>)}
+                        {OFFER_STATUSES.map((v: any) => <option key={v} value={v}>{pretty(v)}</option>)}
                       </select>
                     </Field>
                   </div>

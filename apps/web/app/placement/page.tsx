@@ -112,7 +112,7 @@ export default function PlacementReadinessPage() {
     },
   ];
 
-  const completedCount = rows.filter((row) => row.complete).length;
+  const completedCount = rows.filter((row: any) => row.complete).length;
   const percent = Math.round((completedCount / rows.length) * 100);
 
   const decisionLabel: Record<string, string> = {
@@ -141,7 +141,7 @@ export default function PlacementReadinessPage() {
         <CardContent className="space-y-4">
           <div className="flex items-center gap-3">
             <Badge variant={readiness.decision === 'APPROVED' ? 'default' : 'secondary'}>
-              {decisionLabel[readiness.decision] ?? readiness.decision}
+              {decisionLabel[readiness.decision as keyof typeof decisionLabel] ?? readiness.decision}
             </Badge>
             <span className="text-sm text-gray-500">
               {completedCount} of {rows.length} requirements met
@@ -162,7 +162,7 @@ export default function PlacementReadinessPage() {
           <CardTitle className="text-lg">Requirements</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          {rows.map((row) => (
+          {rows.map((row: any) => (
             <div
               key={row.key}
               className="flex items-start gap-3 p-4 border rounded-lg"

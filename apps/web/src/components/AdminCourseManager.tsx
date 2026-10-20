@@ -169,7 +169,7 @@ useEffect(() => {
   }
 
   function beginEdit(course: AdminCourse) {
-    const curriculum: CurriculumModule[] = (course.curriculum ?? []).map((item) => ({
+    const curriculum: CurriculumModule[] = (course.curriculum ?? []).map((item: any) => ({
       module: item.module,
       topics: [...item.topics],
     }));
@@ -193,7 +193,7 @@ useEffect(() => {
   function updateModule(moduleIndex: number, value: string) {
     setForm((current) => ({
       ...current,
-      curriculum: current.curriculum.map((item, index) =>
+      curriculum: current.curriculum.map((item: any, index: number) =>
         index === moduleIndex ? { ...item, module: value } : item
       ),
     }));
@@ -212,7 +212,7 @@ useEffect(() => {
   function removeModule(moduleIndex: number) {
     setForm((current) => ({
       ...current,
-      curriculum: current.curriculum.filter((_, index) => index !== moduleIndex),
+      curriculum: current.curriculum.filter((_: any, index: number) => index !== moduleIndex),
     }));
   }
 
@@ -230,11 +230,11 @@ useEffect(() => {
   function updateTopic(moduleIndex: number, topicIndex: number, value: string) {
     setForm((current) => ({
       ...current,
-      curriculum: current.curriculum.map((item, index) =>
+      curriculum: current.curriculum.map((item: any, index: number) =>
         index === moduleIndex
           ? {
               ...item,
-              topics: item.topics.map((topic, lessonIndex) =>
+              topics: item.topics.map((topic: any, lessonIndex: number) =>
                 lessonIndex === topicIndex ? value : topic
               ),
             }
@@ -246,7 +246,7 @@ useEffect(() => {
   function addTopic(moduleIndex: number) {
     setForm((current) => ({
       ...current,
-      curriculum: current.curriculum.map((item, index) =>
+      curriculum: current.curriculum.map((item: any, index: number) =>
         index === moduleIndex
           ? { ...item, topics: [...item.topics, ""] }
           : item
@@ -257,11 +257,11 @@ useEffect(() => {
   function removeTopic(moduleIndex: number, topicIndex: number) {
     setForm((current) => ({
       ...current,
-      curriculum: current.curriculum.map((item, index) =>
+      curriculum: current.curriculum.map((item: any, index: number) =>
         index === moduleIndex
           ? {
               ...item,
-              topics: item.topics.filter((_, lessonIndex) => lessonIndex !== topicIndex),
+              topics: item.topics.filter((_: any, lessonIndex: number) => lessonIndex !== topicIndex),
             }
           : item
       ),
@@ -271,7 +271,7 @@ useEffect(() => {
   function moveTopic(moduleIndex: number, topicIndex: number, direction: -1 | 1) {
     setForm((current) => ({
       ...current,
-      curriculum: current.curriculum.map((item, index) => {
+      curriculum: current.curriculum.map((item: any, index: number) => {
         if (index !== moduleIndex) return item;
         const topics = [...item.topics];
         const target = topicIndex + direction;
@@ -294,20 +294,19 @@ useEffect(() => {
         throw new Error("Enter a valid non-negative course price.");
       }
 
-      const curriculum = form.curriculum.map((item) => ({
+      const curriculum = form.curriculum.map((item: any) => ({
         module: item.module.trim(),
-        topics: item.topics.map((topic) => topic.trim()),
+        topics: item.topics.map((topic: any) => topic.trim()),
       }));
 
       if (curriculum.length === 0) {
         throw new Error("Add at least one module to the curriculum.");
       }
       if (
-        curriculum.some(
-          (item) =>
+        curriculum.some((item: any) =>
             !item.module ||
             item.topics.length === 0 ||
-            item.topics.some((topic) => !topic)
+            item.topics.some((topic: any) => !topic)
         )
       ) {
         throw new Error(
@@ -316,7 +315,7 @@ useEffect(() => {
       }
       const learningOutcomes = form.learningOutcomes
         .split("\n")
-        .map((item) => item.trim())
+        .map((item: any) => item.trim())
         .filter(Boolean);
 
       const payload = {
@@ -398,7 +397,7 @@ useEffect(() => {
     }
   }
 
-  const visibleCourses = courses.filter((course) => {
+  const visibleCourses = courses.filter((course: any) => {
     const matchesStatus =
       statusFilter === "ALL" || course.status === statusFilter;
     const term = search.trim().toLowerCase();
@@ -406,7 +405,7 @@ useEffect(() => {
       !term ||
       [course.title, course.category, course.description]
         .filter(Boolean)
-        .some((value) => value!.toLowerCase().includes(term));
+        .some((value: any) => value!.toLowerCase().includes(term));
     return matchesStatus && matchesSearch;
   });
 
@@ -536,7 +535,7 @@ useEffect(() => {
                 </span>
               </div>
 
-              {form.curriculum.map((item, moduleIndex) => (
+              {form.curriculum.map((item: any, moduleIndex: number) => (
                 <div
                   key={moduleIndex}
                   className="space-y-3 rounded-xl border border-slate-700 bg-slate-950/60 p-4"
@@ -586,7 +585,7 @@ useEffect(() => {
                     <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
                       Lessons
                     </p>
-                    {item.topics.map((topic, topicIndex) => (
+                    {item.topics.map((topic: any, topicIndex: number) => (
                       <div key={topicIndex} className="flex flex-wrap items-center gap-2">
                         <span className="w-6 text-center text-xs text-slate-500">
                           {topicIndex + 1}.
@@ -667,8 +666,8 @@ useEffect(() => {
             <div>
               <h2 className="text-xl font-semibold">All courses</h2>
               <p className="mt-1 text-sm text-slate-400">
-                {courses.length} total · {courses.filter((item) => item.status === "DRAFT").length} drafts ·{" "}
-                {courses.filter((item) => item.status === "PUBLISHED").length} published
+                {courses.length} total · {courses.filter((item: any) => item.status === "DRAFT").length} drafts ·{" "}
+                {courses.filter((item: any) => item.status === "PUBLISHED").length} published
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -693,7 +692,7 @@ useEffect(() => {
             </div>
           ) : (
             <div className="grid gap-4 lg:grid-cols-2">
-              {visibleCourses.map((course) => (
+              {visibleCourses.map((course: any) => (
                 <article key={course.id} className="rounded-2xl border border-white/10 bg-white/[0.035] p-5">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">

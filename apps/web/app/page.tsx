@@ -119,7 +119,7 @@ export default function HomePage() {
         </div>
 
         <div className="grid gap-6 md:grid-cols-3">
-          {features.map((feature) => (
+          {features.map((feature: any) => (
             <article
               key={feature.number}
               className="rounded-2xl border border-white/10 bg-white/[0.03] p-8 transition hover:-translate-y-1 hover:border-indigo-400/40"
@@ -177,7 +177,7 @@ export default function HomePage() {
                 description: "Build communication and workplace skills for professional settings.",
                 items: ["Spoken and workplace communication", "HR rounds and group discussions", "Business email and presentations", "Client communication"],
               },
-            ].map((program) => (
+            ].map((program: any) => (
               <article
                 key={program.name}
                 className="flex flex-col rounded-2xl border border-white/10 bg-slate-950/70 p-6 transition hover:-translate-y-1 hover:border-indigo-400/40"
@@ -190,7 +190,7 @@ export default function HomePage() {
                   </p>
                   <div className="my-6 h-px bg-white/10" />
                   <ul className="space-y-3 text-sm text-slate-300">
-                    {program.items.map((item) => (
+                    {program.items.map((item: any) => (
                       <li key={item} className="flex gap-2">
                         <span aria-hidden="true" className="text-indigo-300">✓</span>
                         <span>{item}</span>
@@ -302,7 +302,7 @@ export default function HomePage() {
               answer:
                 "Use the registration link to begin your journey. For program availability, schedules, final pricing, or enrollment questions, contact the TekRovia team through the official support channel.",
             },
-          ].map((item) => (
+          ].map((item: any) => (
             <details
               key={item.question}
               className="group rounded-2xl border border-white/10 bg-white/[0.03] p-5 open:border-indigo-400/40 open:bg-indigo-500/[0.04] sm:p-6"

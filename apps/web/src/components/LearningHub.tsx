@@ -73,7 +73,7 @@ export default function LearningHub() {
   }, [loadLearning]);
 
   const categories = useMemo(
-    () => ["all", ...Array.from(new Set(courses.map((course) => course.category).filter(Boolean)))],
+    () => ["all", ...Array.from(new Set(courses.map((course: any) => course.category).filter(Boolean)))],
     [courses]
   );
 
@@ -81,7 +81,7 @@ export default function LearningHub() {
     const term = search.trim().toLowerCase();
     if (!term) return courses;
 
-    return courses.filter((course) =>
+    return courses.filter((course: any) =>
       [
         course.title,
         course.description,
@@ -89,12 +89,12 @@ export default function LearningHub() {
         course.level,
       ]
         .filter(Boolean)
-        .some((value) => value!.toLowerCase().includes(term))
+        .some((value: any) => value!.toLowerCase().includes(term))
     );
   }, [courses, search]);
 
   const enrolledCourseIds = useMemo(
-    () => new Set(progress.map((item) => item.courseId)),
+    () => new Set(progress.map((item: any) => item.courseId)),
     [progress]
   );
 
@@ -201,7 +201,7 @@ export default function LearningHub() {
             onChange={(event) => setCategory(event.target.value)}
             className="ml-2 rounded-xl border border-white/10 bg-slate-900 px-3 py-2 text-sm text-white"
           >
-            {categories.map((item) => (
+            {categories.map((item: any) => (
               <option key={item} value={item}>
                 {item === "all" ? "All categories" : item}
               </option>
@@ -215,7 +215,7 @@ export default function LearningHub() {
             onChange={(event) => setLevel(event.target.value)}
             className="ml-2 rounded-xl border border-white/10 bg-slate-900 px-3 py-2 text-sm text-white"
           >
-            {levels.map((item) => (
+            {levels.map((item: any) => (
               <option key={item} value={item}>
                 {item === "all" ? "All levels" : item}
               </option>
@@ -242,7 +242,7 @@ export default function LearningHub() {
           </div>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {filteredCourses.map((course) => (
+            {filteredCourses.map((course: any) => (
               <article
                 key={course.id}
                 className="flex flex-col rounded-2xl border border-white/10 bg-white/[0.04] p-5"
@@ -324,19 +324,19 @@ export default function LearningHub() {
           </div>
           <h4 className="mt-5 font-medium text-white">Learning outcomes</h4>
           <ul className="mt-2 list-inside list-disc space-y-1 text-sm text-slate-300">
-            {selected.learningOutcomes.map((outcome, index) => (
+            {selected.learningOutcomes.map((outcome: any, index: number) => (
               <li key={`${index}-${outcome}`}>{outcome}</li>
             ))}
           </ul>
           <h4 className="mt-5 font-medium text-white">Curriculum</h4>
           <div className="mt-3 space-y-3">
-            {selected.curriculum.map((module, index) => (
+            {selected.curriculum.map((module: any, index: number) => (
               <div key={`${index}-${module.module}`} className="rounded-xl border border-white/10 bg-slate-950/40 p-4">
                 <p className="text-sm font-medium text-white">
                   Module {index + 1}: {module.module}
                 </p>
                 <ul className="mt-2 list-inside list-disc space-y-1 text-sm text-slate-400">
-                  {module.topics.map((topic, topicIndex) => (
+                  {module.topics.map((topic: any, topicIndex: number) => (
                     <li key={`${topicIndex}-${topic}`}>{topic}</li>
                   ))}
                 </ul>
@@ -364,7 +364,7 @@ export default function LearningHub() {
           </div>
         ) : (
           <div className="space-y-4">
-            {progress.map((item) => (
+            {progress.map((item: any) => (
               <article key={item.enrollmentId} className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
@@ -387,11 +387,11 @@ export default function LearningHub() {
                   {item.progressPercent}% complete
                 </p>
                 <div className="mt-4 space-y-4">
-                  {item.modules.map((module) => (
+                  {item.modules.map((module: any) => (
                     <div key={module.id}>
                       <h5 className="text-sm font-medium text-slate-200">{module.title}</h5>
                       <div className="mt-2 space-y-2">
-                        {module.lessons.map((lesson) => (
+                        {module.lessons.map((lesson: any) => (
                           <div key={lesson.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-slate-950/50 px-3 py-3">
                             <div>
                               <p className="text-sm text-slate-200">{lesson.title}</p>

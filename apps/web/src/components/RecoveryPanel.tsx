@@ -53,7 +53,7 @@ export default function RecoveryPanel({ recovery }: { recovery?: RecoveryInfo })
 
       {failedInterviews.length > 0 && (
         <ul className="mt-3 space-y-2">
-          {failedInterviews.map((interview) => (
+          {failedInterviews.map((interview: any) => (
             <li
               key={interview.id}
               className="rounded-xl border border-slate-800 p-3 text-sm"

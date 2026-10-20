@@ -157,7 +157,7 @@ export default function ProjectsPanel() {
       )}
 
       <div className="space-y-5">
-        {items.map((project) => (
+        {items.map((project: any) => (
           <article
             key={project.id}
             className="rounded-2xl border border-white/10 bg-white/[0.04] p-5"
@@ -209,7 +209,7 @@ export default function ProjectsPanel() {
             </div>
 
             <div className="mt-5 space-y-4">
-              {project.milestones.map((milestone, index) => {
+              {project.milestones.map((milestone: any, index: number) => {
                 const canSubmit =
                   milestone.unlocked &&
                   (milestone.latestStatus === null ||
@@ -236,9 +236,9 @@ export default function ProjectsPanel() {
                       </div>
                       {milestone.latestStatus ? (
                         <span
-                          className={`rounded-full px-3 py-1 text-xs ${statusClass[milestone.latestStatus]}`}
+                          className={`rounded-full px-3 py-1 text-xs ${statusClass[milestone.latestStatus as keyof typeof statusClass]}`}
                         >
-                          {statusLabel[milestone.latestStatus]}
+                          {statusLabel[milestone.latestStatus as keyof typeof statusLabel]}
                         </span>
                       ) : !milestone.unlocked ? (
                         <span className="rounded-full bg-white/5 px-3 py-1 text-xs text-slate-400">
@@ -261,7 +261,7 @@ export default function ProjectsPanel() {
 
                     {milestone.submissions.length > 0 && (
                       <div className="mt-3 space-y-3">
-                        {milestone.submissions.map((attempt) => {
+                        {milestone.submissions.map((attempt: any) => {
                           const link = safeHttpsUrl(attempt.submissionUrl);
                           return (
                             <div
@@ -269,7 +269,7 @@ export default function ProjectsPanel() {
                               className="rounded-lg border border-white/10 p-3"
                             >
                               <p className="text-xs text-slate-400">
-                                Attempt {attempt.attemptNumber} · {statusLabel[attempt.status]}
+                                Attempt {attempt.attemptNumber} · {statusLabel[attempt.status as keyof typeof statusLabel]}
                               </p>
                               {attempt.submissionText && (
                                 <div className="mt-2 whitespace-pre-wrap break-words text-sm text-slate-200">

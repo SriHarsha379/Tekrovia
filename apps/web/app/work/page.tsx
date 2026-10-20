@@ -75,7 +75,7 @@ export default function MyWorkPage() {
     load();
   }, [load]);
 
-  const submit = async (url: string, key: string) => {
+  const submit = async (url: string, _key: string) => {
     const headers = authHeaders();
     if (!headers) return;
 
@@ -174,7 +174,7 @@ export default function MyWorkPage() {
           {assignments.length === 0 ? (
             <p className="text-gray-500">No assignments yet.</p>
           ) : (
-            assignments.map((assignment) => (
+            assignments.map((assignment: any) => (
               <div key={assignment.id} className="rounded-lg border p-4">
                 <div className="flex items-start justify-between gap-4">
                   <div>
@@ -222,7 +222,7 @@ export default function MyWorkPage() {
           {projects.length === 0 ? (
             <p className="text-gray-500">No projects yet.</p>
           ) : (
-            projects.map((project) => (
+            projects.map((project: any) => (
               <div key={project.id} className="space-y-3">
                 <div>
                   <p className="font-medium">{project.title}</p>

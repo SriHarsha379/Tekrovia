@@ -144,7 +144,7 @@ export default function ProjectReviewQueue() {
   return (
     <section aria-label="Project review queue" className="space-y-5">
       <div className="flex flex-wrap gap-2">
-        {tabs.map((tab) => (
+        {tabs.map((tab: any) => (
           <button
             key={tab.status}
             type="button"
@@ -182,7 +182,7 @@ export default function ProjectReviewQueue() {
         </div>
       ) : (
         <div className="space-y-4">
-          {data.items.map((item) => {
+          {data.items.map((item: any) => {
             const link = safeHttpsUrl(item.submissionUrl);
             const pending = item.status === "SUBMITTED";
             const canAct = pending && (!item.milestone.isFinal || isAdminUser);

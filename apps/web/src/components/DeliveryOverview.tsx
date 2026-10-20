@@ -61,7 +61,7 @@ export default function DeliveryOverview({
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {items.map((item) => (
+        {items.map((item: any) => (
           <article
             key={item.label}
             className="rounded-2xl border border-slate-800 bg-slate-900 p-5"

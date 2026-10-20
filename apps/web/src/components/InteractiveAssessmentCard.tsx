@@ -133,7 +133,7 @@ export default function InteractiveAssessmentCard({
   async function submitQuiz() {
     if (!assessment || !currentQuestion) return;
 
-    const missing = questions.some((question) => answers[question.id] === undefined);
+    const missing = questions.some((question: any) => answers[question.id] === undefined);
     if (missing) {
       setError("Please answer every question before submitting.");
       return;
@@ -143,7 +143,7 @@ export default function InteractiveAssessmentCard({
     setError("");
 
     try {
-      const submittedAnswers = questions.map((question) => ({
+      const submittedAnswers = questions.map((question: any) => ({
         questionId: question.id,
         answerIndex: answers[question.id],
       }));
@@ -249,7 +249,7 @@ export default function InteractiveAssessmentCard({
             </h3>
 
             <div className="mt-5 space-y-3">
-              {currentQuestion.options.map((option, index) => {
+              {currentQuestion.options.map((option: any, index: number) => {
                 const selected = answers[currentQuestion.id] === index;
                 return (
                   <label
@@ -342,7 +342,7 @@ export default function InteractiveAssessmentCard({
             <div>
               <h3 className="text-lg font-semibold">Category breakdown</h3>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                {result.responses.categoryResults.map((item) => (
+                {result.responses.categoryResults.map((item: any) => (
                   <div
                     key={item.category}
                     className="rounded-xl border border-white/10 bg-slate-950/40 p-4"
@@ -372,7 +372,7 @@ export default function InteractiveAssessmentCard({
             <div>
               <h3 className="text-lg font-semibold">Recommended next steps</h3>
               <ol className="mt-3 space-y-3">
-                {result.roadmap.recommendations.map((item, index) => (
+                {result.roadmap.recommendations.map((item: any, index: number) => (
                   <li
                     key={`${index}-${item}`}
                     className="flex gap-3 rounded-xl border border-white/10 bg-slate-950/40 p-4"
