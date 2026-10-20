@@ -620,6 +620,7 @@ export default function AdminStudentDetailPage() {
               <AdminEnrollPanel
                 userId={student.user.id}
                 studentName={student.fullName}
+                enrollments={student.enrollments as any}
                 enrolledCourseIds={student.enrollments
                   .filter((e: any) => e.status !== 'CANCELLED')
                   .map((e: any) => e.course.id)}

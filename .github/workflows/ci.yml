@@ -1,19 +1,37 @@
 name: CI
-on: [push, pull_request]
+
+on:
+  push:
+    branches: [main]
+  pull_request:
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      # Prisma needs a URL to generate the client; it never connects.
+      DATABASE_URL: postgresql://user:pass@localhost:5432/db?schema=public
+      NEXT_PUBLIC_API_URL: http://localhost:3001
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: 12
+
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: pnpm
+
       - run: pnpm install --frozen-lockfile
-      - run: pnpm db:generate
-      - run: pnpm --filter api build
-      - run: pnpm --filter web build
+
+      - name: Generate Prisma client
+        run: pnpm db:generate
+
+      - name: Build API
+        run: pnpm --filter api build
+
+      - name: Build web
+        run: pnpm --filter web build
