@@ -15,7 +15,8 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:seed": "prisma db seed",
-    "db:reset": "prisma migrate reset"
+    "db:reset": "prisma migrate reset",
+    "test:journey": "tsx scripts/journey.ts && tsx scripts/trainer.ts"
   },
   "workspaces": [
     "apps/*",

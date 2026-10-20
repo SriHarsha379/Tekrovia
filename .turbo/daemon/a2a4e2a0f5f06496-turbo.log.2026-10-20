@@ -68,3 +68,20 @@
 2026-10-20T16:56:07.537910Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Root, path: AnchoredSystemPathBuf("") }}))
 2026-10-20T16:56:27.537344Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf(""), AnchoredSystemPathBuf("_tmp_45043_1df1a258"), AnchoredSystemPathBuf("_tmp_45043_1ddca358"), AnchoredSystemPathBuf("scripts/trainer.ts")}
 2026-10-20T16:56:27.537377Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Root, path: AnchoredSystemPathBuf("") }}))
+2026-10-20T16:56:47.135557Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("package.json")}
+2026-10-20T16:56:47.135586Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(All)
+2026-10-20T16:59:52.311265Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web/src/components/LeadCaptureForm.tsx")}
+2026-10-20T16:59:52.311291Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@tekrovia/web"), path: AnchoredSystemPathBuf("apps/web") }}))
+2026-10-20T17:00:02.311379Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("_tmp_45230_0ceeab40"), AnchoredSystemPathBuf("_tmp_45230_0d0a3220"), AnchoredSystemPathBuf("apps/web/app/page.tsx"), AnchoredSystemPathBuf("")}
+2026-10-20T17:00:02.311410Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Root, path: AnchoredSystemPathBuf("") }, WorkspacePackage { name: Other("@tekrovia/web"), path: AnchoredSystemPathBuf("apps/web") }}))
+2026-10-20T17:01:13.114626Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("apps/web"), AnchoredSystemPathBuf("apps/web/_tmp_45403_04856110"), AnchoredSystemPathBuf("apps/web/_tmp_45403_04c01468")}
+2026-10-20T17:01:13.115894Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Other("@tekrovia/web"), path: AnchoredSystemPathBuf("apps/web") }}))
+2026-10-20T17:01:13.195043Z  WARN turborepo_lib::package_changes_watcher: hashes are the same, no need to rerun
+2026-10-20T17:01:45.814802Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("_tmp_45573_2eb45068"), AnchoredSystemPathBuf("_tmp_45573_2e717338"), AnchoredSystemPathBuf("")}
+2026-10-20T17:01:45.815352Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Root, path: AnchoredSystemPathBuf("") }}))
+2026-10-20T17:01:58.207879Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("_tmp_45611_076bdf30"), AnchoredSystemPathBuf("_tmp_45611_0745d8d0"), AnchoredSystemPathBuf("")}
+2026-10-20T17:01:58.207897Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Root, path: AnchoredSystemPathBuf("") }}))
+2026-10-20T17:02:21.707664Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("_tmp_45674_28c973b8"), AnchoredSystemPathBuf(""), AnchoredSystemPathBuf("_tmp_45674_28961360")}
+2026-10-20T17:02:21.707809Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Root, path: AnchoredSystemPathBuf("") }}))
+2026-10-20T17:03:14.815823Z  WARN turborepo_lib::package_changes_watcher: changed_files: {AnchoredSystemPathBuf("_tmp_45835_2ae59140"), AnchoredSystemPathBuf(""), AnchoredSystemPathBuf("_tmp_45835_2b250f28")}
+2026-10-20T17:03:14.817229Z  WARN turborepo_lib::package_changes_watcher: changed_packages: Ok(Some({WorkspacePackage { name: Root, path: AnchoredSystemPathBuf("") }}))

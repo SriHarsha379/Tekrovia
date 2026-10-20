@@ -1,4 +1,5 @@
 import Link from "next/link";
+import LeadCaptureForm from "../src/components/LeadCaptureForm";
 
 const features = [
   {
@@ -89,10 +90,10 @@ export default function HomePage() {
 
           <div className="mt-10 flex flex-col justify-center gap-4 sm:flex-row">
             <Link
-              href="/register"
+              href="#start"
               className="rounded-xl bg-indigo-500 px-7 py-4 font-semibold shadow-lg shadow-indigo-950/40 transition hover:-translate-y-0.5 hover:bg-indigo-400"
             >
-              Start your journey →
+              Get a free assessment →
             </Link>
             <a
               href="#features"
@@ -100,6 +101,67 @@ export default function HomePage() {
             >
               Explore features
             </a>
+          </div>
+        </div>
+      </section>
+
+      <section id="start" className="border-y border-white/10 bg-slate-900/40 px-6 py-20">
+        <div className="mx-auto max-w-6xl">
+          <div className="mx-auto mb-12 max-w-3xl text-center">
+            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-indigo-400">
+              Start free
+            </p>
+            <h2 className="mt-4 text-3xl font-bold sm:text-4xl">
+              Three ways to begin, at no cost
+            </h2>
+            <p className="mt-4 leading-7 text-slate-400">
+              Find out where you stand before you commit to anything.
+            </p>
+          </div>
+
+          <div className="grid gap-10 lg:grid-cols-2 lg:items-start">
+            <div className="space-y-4">
+              {[
+                {
+                  title: "Free assessment",
+                  body: "A short skills and career-readiness check that returns a personalised roadmap and a readiness score.",
+                },
+                {
+                  title: "Three-session trial",
+                  body: "Three real lessons plus one guided lab, so you can judge the teaching before you pay for it.",
+                },
+                {
+                  title: "Free AI mock interview",
+                  body: "A ten-minute diagnostic interview with feedback on your answers and communication.",
+                },
+              ].map((offer) => (
+                <article
+                  key={offer.title}
+                  className="rounded-2xl border border-white/10 bg-white/[0.03] p-6"
+                >
+                  <h3 className="font-semibold text-indigo-200">{offer.title}</h3>
+                  <p className="mt-2 text-sm leading-7 text-slate-400">{offer.body}</p>
+                </article>
+              ))}
+
+              <p className="pt-2 text-sm leading-7 text-slate-500">
+                Already have an account?{" "}
+                <Link href="/login" className="text-indigo-300 hover:text-indigo-200">
+                  Log in
+                </Link>
+                .
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-indigo-400/30 bg-indigo-500/[0.07] p-6 sm:p-8">
+              <h3 className="text-xl font-semibold">Tell us where to send it</h3>
+              <p className="mt-2 text-sm leading-7 text-slate-400">
+                Takes under a minute. No payment details needed.
+              </p>
+              <div className="mt-6">
+                <LeadCaptureForm />
+              </div>
+            </div>
           </div>
         </div>
       </section>
