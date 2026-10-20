@@ -75,6 +75,9 @@ model User {
   projectSubmissions           ProjectSubmission[]    @relation("ProjectSubmissionAuthor")
   projectSubmissionReviews     ProjectSubmission[]    @relation("ProjectSubmissionReviewer")
   checkpointAttempts           CheckpointAttempt[]
+  ticketsRaised                SupportTicket[]        @relation("TicketRaiser")
+  ticketsOwned                 SupportTicket[]        @relation("TicketOwner")
+  ticketComments               TicketComment[]        @relation("TicketCommentAuthor")
 
   @@map("users")
 }
@@ -774,4 +777,86 @@ model CheckpointAttempt {
   @@index([userId, checkpointId])
   @@index([status])
   @@map("checkpoint_attempts")
+}
+
+enum TicketCategory {
+  LMS
+  PAYMENT
+  SCHEDULE
+  TRAINER
+  ASSIGNMENT
+  PROJECT
+  INTERVIEW
+  RESUME
+  MOCK
+  PLACEMENT
+  TECHNICAL
+  OTHER
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  WAITING_ON_STUDENT
+  RESOLVED
+  CLOSED
+}
+
+enum TicketPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+model SupportTicket {
+  id          String         @id @default(cuid())
+  ticketCode  String         @unique
+  userId      String
+  user        User           @relation("TicketRaiser", fields: [userId], references: [id], onDelete: Cascade)
+  subject     String
+  body        String         @db.Text
+  category    TicketCategory @default(OTHER)
+  priority    TicketPriority @default(NORMAL)
+  status      TicketStatus   @default(OPEN)
+
+  // The named support owner from the blueprint.
+  ownerId     String?
+  owner       User?          @relation("TicketOwner", fields: [ownerId], references: [id], onDelete: SetNull)
+
+  // Optional context, so a ticket raised from a lesson knows where it came from.
+  courseId    String?
+  lessonId    String?
+
+  // SLA timing. Escalation is read from these rather than scheduled,
+  // until there is an email channel to escalate through.
+  firstResponseAt DateTime?
+  resolvedAt      DateTime?
+  dueAt           DateTime?
+
+  comments    TicketComment[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([userId, status])
+  @@index([status, createdAt])
+  @@index([ownerId, status])
+  @@index([category])
+  @@map("support_tickets")
+}
+
+model TicketComment {
+  id        String        @id @default(cuid())
+  ticketId  String
+  ticket    SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User          @relation("TicketCommentAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  body      String        @db.Text
+
+  // Staff-only notes the student never sees.
+  isInternal Boolean      @default(false)
+  createdAt DateTime      @default(now())
+
+  @@index([ticketId, createdAt])
+  @@map("ticket_comments")
 }

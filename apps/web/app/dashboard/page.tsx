@@ -6,6 +6,7 @@ import {
   ArrowRight,
   BarChart3,
   BookOpen,
+  MessageSquare,
   CheckCircle2,
   ClipboardList,
   GraduationCap,
@@ -545,6 +546,31 @@ export default function DashboardPage() {
                   className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-3 text-sm font-medium transition-colors hover:bg-slate-50"
                 >
                   View assessments
+                  <ArrowRight className="h-4 w-4 text-slate-500" />
+                </Link>
+              </CardContent>
+            </Card>
+
+            <Card className="border-slate-200/80 shadow-sm">
+              <CardHeader className="pb-3">
+                <div className="flex items-center gap-3">
+                  <div className="rounded-xl bg-rose-50 p-2.5 text-rose-700">
+                    <MessageSquare className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-base">Need help?</CardTitle>
+                    <CardDescription className="mt-1">
+                      Stuck on something? Ask the team
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <Link
+                  href="/support"
+                  className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-3 text-sm font-medium transition-colors hover:bg-slate-50"
+                >
+                  Open support
                   <ArrowRight className="h-4 w-4 text-slate-500" />
                 </Link>
               </CardContent>
