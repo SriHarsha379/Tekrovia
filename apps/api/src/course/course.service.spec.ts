@@ -18,7 +18,12 @@ describe('CourseService lesson content protection', () => {
   let service: CourseService;
 
   beforeEach(() => {
-    service = new CourseService(prisma as unknown as PrismaService);
+    service = new CourseService(prisma as unknown as PrismaService, {
+      grant: (reference: string | null) =>
+        reference ? { url: reference, expiresAt: new Date() } : null,
+      isProtected: false,
+      strategy: 'passthrough',
+    } as any);
   });
 
   function expectNoProtectedFields(include: LessonInclude) {

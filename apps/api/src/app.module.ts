@@ -1,3 +1,4 @@
+import { VideoModule } from './video/video.module';
 import { MarketingModule } from './marketing/marketing.module';
 import { ResourceModule } from './resource/resource.module';
 import { DeliveryModule } from './delivery/delivery.module';
@@ -21,7 +22,7 @@ import { AdminModule } from './admin/admin.module';
 import { CheckpointModule } from './checkpoint/checkpoint.module';
 
 @Module({
-  imports: [MarketingModule, ResourceModule, DeliveryModule, LiveClassModule, BatchModule, SupportModule, 
+  imports: [VideoModule, MarketingModule, ResourceModule, DeliveryModule, LiveClassModule, BatchModule, SupportModule, 
     ConfigModule.forRoot({
       isGlobal: true,
     }),

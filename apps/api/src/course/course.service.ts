@@ -6,12 +6,16 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { VideoService } from '../video/video.service';
 import { CreateCourseDto } from './dto/create-course.dto';
 import { AdminUpdateLessonDto } from './dto/admin-lesson.dto';
 
 @Injectable()
 export class CourseService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly videoService: VideoService,
+  ) {}
 
   private readonly courseInclude = {
     modules: {
@@ -617,12 +621,12 @@ export class CourseService {
             title: lesson.title,
             duration: lesson.duration,
             completed: lesson.progress.some((item) => item.isCompleted),
-            ...(hasAccess
-              ? {
-                  content: lesson.content ?? null,
-                  videoUrl: lesson.videoUrl ?? null,
-                }
-              : {}),
+            // Notes travel with the list, but never the video reference:
+            // gating lives in the checkpoint module, so this endpoint cannot
+            // tell whether a lesson is unlocked. The player fetches each
+            // lesson individually, where both checks run.
+            ...(hasAccess ? { content: lesson.content ?? null } : {}),
+            hasVideo: Boolean(lesson.videoUrl),
           })),
         })),
       };
@@ -650,12 +654,18 @@ export class CourseService {
     }
 
     const p = lesson.progress[0];
+    // The stored reference never leaves the server: students receive a
+    // short-lived playback URL issued after the enrolment check above.
+    const playback = this.videoService.grant(lesson.videoUrl);
+
     return {
       id: lesson.id,
       title: lesson.title,
       description: lesson.description,
       content: lesson.content,
-      videoUrl: lesson.videoUrl,
+      videoUrl: playback?.url ?? null,
+      videoExpiresAt: playback?.expiresAt ?? null,
+      videoProtected: this.videoService.isProtected,
       duration: lesson.duration,
       sortOrder: lesson.sortOrder,
       module: lesson.module,

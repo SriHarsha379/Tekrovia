@@ -15,7 +15,12 @@ describe('CourseService assignment visibility', () => {
   let service: CourseService;
 
   beforeEach(() => {
-    service = new CourseService(prisma as unknown as PrismaService);
+    service = new CourseService(prisma as unknown as PrismaService, {
+      grant: (reference: string | null) =>
+        reference ? { url: reference, expiresAt: new Date() } : null,
+      isProtected: false,
+      strategy: 'passthrough',
+    } as any);
   });
 
   it('loads each lesson assignment in the administrator course list', async () => {

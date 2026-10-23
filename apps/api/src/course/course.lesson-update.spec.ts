@@ -10,7 +10,12 @@ describe('CourseService.adminUpdateLesson', () => {
   let service: CourseService;
 
   beforeEach(() => {
-    service = new CourseService(prisma as unknown as PrismaService);
+    service = new CourseService(prisma as unknown as PrismaService, {
+      grant: (reference: string | null) =>
+        reference ? { url: reference, expiresAt: new Date() } : null,
+      isProtected: false,
+      strategy: 'passthrough',
+    } as any);
   });
 
   it('throws NotFoundException and updates nothing when the lesson does not exist', async () => {
