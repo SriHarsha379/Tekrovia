@@ -80,6 +80,8 @@ model User {
   ticketComments               TicketComment[]        @relation("TicketCommentAuthor")
   batchesTrained               Batch[]                @relation("BatchTrainer")
   batchMemberships             BatchMember[]          @relation("BatchMembership")
+  liveClassesTrained           LiveClass[]            @relation("LiveClassTrainer")
+  classAttendance              ClassAttendance[]      @relation("ClassAttendee")
 
   @@map("users")
 }
@@ -893,6 +895,7 @@ model Batch {
 
   notes       String?     @db.Text
   members     BatchMember[]
+  liveClasses LiveClass[]
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
@@ -912,4 +915,61 @@ model BatchMember {
   @@unique([batchId, userId])
   @@index([userId])
   @@map("batch_members")
+}
+
+enum LiveClassStatus {
+  SCHEDULED
+  LIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum AttendanceStatus {
+  PRESENT
+  LATE
+  ABSENT
+  EXCUSED
+}
+
+model LiveClass {
+  id           String          @id @default(cuid())
+  batchId      String
+  batch        Batch           @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  title        String
+  description  String?         @db.Text
+
+  scheduledAt  DateTime
+  durationMins Int             @default(60)
+  meetingLink  String?
+  recordingUrl String?
+
+  status       LiveClassStatus @default(SCHEDULED)
+
+  // Falls back to the batch trainer when not set.
+  trainerId    String?
+  trainer      User?           @relation("LiveClassTrainer", fields: [trainerId], references: [id], onDelete: SetNull)
+
+  attendance   ClassAttendance[]
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  @@index([batchId, scheduledAt])
+  @@index([scheduledAt, status])
+  @@map("live_classes")
+}
+
+model ClassAttendance {
+  id           String           @id @default(cuid())
+  liveClassId  String
+  liveClass    LiveClass        @relation(fields: [liveClassId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User             @relation("ClassAttendee", fields: [userId], references: [id], onDelete: Cascade)
+
+  status       AttendanceStatus @default(ABSENT)
+  note         String?
+  markedAt     DateTime         @default(now())
+
+  @@unique([liveClassId, userId])
+  @@index([userId, status])
+  @@map("class_attendance")
 }

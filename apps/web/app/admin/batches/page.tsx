@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
 import { adminApi, readAdminUser } from '../../../src/lib/admin-api';
+import BatchClasses from '../../../src/components/BatchClasses';
 
 const STAFF = ['ADMIN', 'SUPER_ADMIN', 'TRAINER', 'COUNSELLOR'];
 const STATUSES = ['PLANNED', 'ENROLLING', 'RUNNING', 'COMPLETED', 'CANCELLED'];
@@ -335,6 +336,8 @@ export default function BatchesPage() {
                 </p>
               </div>
             </div>
+
+            <BatchClasses batchId={open.id} />
           </section>
         )}
 

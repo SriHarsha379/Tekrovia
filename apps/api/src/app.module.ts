@@ -1,3 +1,4 @@
+import { LiveClassModule } from './live-class/live-class.module';
 import { BatchModule } from './batch/batch.module';
 import { SupportModule } from './support/support.module';
 import { Module } from '@nestjs/common';
@@ -17,7 +18,7 @@ import { AdminModule } from './admin/admin.module';
 import { CheckpointModule } from './checkpoint/checkpoint.module';
 
 @Module({
-  imports: [BatchModule, SupportModule, 
+  imports: [LiveClassModule, BatchModule, SupportModule, 
     ConfigModule.forRoot({
       isGlobal: true,
     }),
