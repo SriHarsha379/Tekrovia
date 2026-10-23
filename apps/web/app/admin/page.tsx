@@ -117,6 +117,10 @@ export default function AdminDashboardPage() {
               className="rounded-xl border border-slate-700 px-4 py-3 text-sm font-semibold hover:bg-slate-800">
               Support queue
             </Link>
+            <Link href="/admin/marketing"
+              className="rounded-xl border border-slate-700 px-4 py-3 text-sm font-semibold hover:bg-slate-800">
+              Marketing
+            </Link>
             <Link href="/admin/leads"
               className="rounded-xl border border-slate-700 px-4 py-3 text-sm font-semibold hover:bg-slate-800">
               Leads
