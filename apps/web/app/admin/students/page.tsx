@@ -78,7 +78,7 @@ export default function AdminStudentsPage() {
           </div>
           <Link href="/admin"
             className="rounded-xl border border-slate-700 px-4 py-3 text-sm font-semibold hover:bg-slate-800">
-            ← Back to dashboard
+            ← Back to admin
           </Link>
         </header>
 

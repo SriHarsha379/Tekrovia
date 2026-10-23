@@ -432,10 +432,10 @@ useEffect(() => {
           </div>
           <button
             type="button"
-            onClick={() => router.push("/dashboard")}
+            onClick={() => router.push("/admin")}
             className={`${buttonClass} border border-white/15 text-slate-200 hover:bg-white/10`}
           >
-            Back to dashboard
+            Back to admin
           </button>
         </header>
 
