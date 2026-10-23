@@ -255,6 +255,8 @@ export class AuthService {
       where: {
         accessToken,
         expiresAt: { gt: new Date() },
+        // Without this a logged-out token keeps working.
+        revokedAt: null,
       },
       include: { user: true },
     });
@@ -269,5 +271,14 @@ export class AuthService {
       name: session.user.name,
       role: session.user.role,
     };
+  }
+
+  /** Revokes the session behind this token. Safe to call twice. */
+  async logout(accessToken: string) {
+    await this.prisma.session.updateMany({
+      where: { accessToken, revokedAt: null },
+      data: { revokedAt: new Date() },
+    });
+    return { loggedOut: true };
   }
 }

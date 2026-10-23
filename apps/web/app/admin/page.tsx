@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import UserMenu from '../../src/components/UserMenu';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import axios from 'axios';
@@ -99,6 +100,9 @@ export default function AdminDashboardPage() {
             <p className="mt-2 text-slate-400">
               Monitor students, leads, assessments and learning activity.
             </p>
+          </div>
+          <div className="mb-4 flex w-full justify-end">
+            <UserMenu tone="dark" />
           </div>
           <nav className="flex flex-wrap gap-3">
             <Link href="/admin/delivery"

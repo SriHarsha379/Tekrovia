@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
+import UserMenu from '../../src/components/UserMenu';
 import {
   ArrowRight,
   BarChart3,
@@ -263,6 +264,10 @@ export default function DashboardPage() {
             </Button>
           </div>
         ) : null}
+
+        <div className="flex justify-end">
+          <UserMenu />
+        </div>
 
         <section className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-950 via-blue-950 to-blue-800 p-6 text-white shadow-lg sm:p-9">
           <div className="pointer-events-none absolute -right-16 -top-20 h-64 w-64 rounded-full border border-white/10" />

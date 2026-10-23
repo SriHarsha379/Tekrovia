@@ -1,4 +1,4 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Req, Controller, Post } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 
@@ -23,5 +23,13 @@ export class AuthController {
   @ApiOperation({ summary: 'Verify OTP for completed login' })
   verifyOtp(@Body() body: { email: string; otp: string }) {
     return this.authService.verifyOtp(body.email, body.otp);
+  }
+
+  @Post('logout')
+  @ApiOperation({ summary: 'Revoke the current session' })
+  async logout(@Req() request: any) {
+    const header: string | undefined = request.headers?.authorization;
+    if (!header?.startsWith('Bearer ')) return { loggedOut: true };
+    return this.authService.logout(header.slice('Bearer '.length).trim());
   }
 }
