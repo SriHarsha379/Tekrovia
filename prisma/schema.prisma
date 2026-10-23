@@ -300,6 +300,8 @@ enum PlacementOfferStatus {
 
 model PlacementApplication {
   id              String                     @id @default(cuid())
+  jobPostingId    String?
+  jobPosting      JobPosting?                @relation(fields: [jobPostingId], references: [id], onDelete: SetNull)
   candidateId     String
   candidate       Candidate                  @relation(fields: [candidateId], references: [id], onDelete: Cascade)
   companyName     String
@@ -1006,3 +1008,48 @@ model LessonResource {
   @@index([lessonId, type])
   @@map("lesson_resources")
 }
+
+enum JobPostingStatus {
+  OPEN
+  ON_HOLD
+  FILLED
+  CLOSED
+}
+
+/// A real vacancy at a company. Applications point at one of these rather
+/// than repeating the company and role as free text on every row.
+model JobPosting {
+  id           String           @id @default(cuid())
+  postingCode  String           @unique
+  companyName  String
+  jobTitle     String
+  location     String?
+  employmentType String?
+  description  String?          @db.Text
+  requirements String[]
+  minExperience Int?
+  salaryMin    Float?
+  salaryMax    Float?
+  currency     String           @default("INR")
+  jobUrl       String?
+  source       String?
+
+  status       JobPostingStatus @default(OPEN)
+  openings     Int              @default(1)
+  closingDate  DateTime?
+
+  notes        String?          @db.Text
+  applications PlacementApplication[]
+
+  createdByUserId String?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  @@index([status, createdAt])
+  @@index([companyName])
+  @@map("job_postings")
+}
+
+
+/// The blueprint's four-interview rule: after four unsuccessful interviews,
+/// pause submissions, review the skill gap, brush up, re-mock, then resume.

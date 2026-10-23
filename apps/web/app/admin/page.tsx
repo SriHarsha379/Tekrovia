@@ -129,6 +129,10 @@ export default function AdminDashboardPage() {
               className="rounded-xl bg-indigo-500 px-4 py-3 text-sm font-semibold text-white hover:bg-indigo-400">
               Course management
             </Link>
+            <Link href="/admin/jobs"
+              className="rounded-xl border border-slate-700 px-4 py-3 text-sm font-semibold hover:bg-slate-800">
+              Job postings
+            </Link>
             <Link href="/admin/placements"
               className="rounded-xl border border-slate-700 px-4 py-3 text-sm font-semibold hover:bg-slate-800">
               Placement management
