@@ -5,6 +5,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { adminApi } from "../lib/admin-api";
 import { safeHttpsUrl } from "../lib/safe-url";
 import AdminAssignmentEditor, { type LessonAssignment } from "./AdminAssignmentEditor";
+import LessonResourceEditor from "./LessonResourceEditor";
 
 export type AdminLesson = {
   id: string;
@@ -295,6 +296,7 @@ export default function AdminLessonEditor({
                     lessonId={lesson.id}
                     assignment={lesson.assignment ?? null}
                   />
+                  <LessonResourceEditor lessonId={lesson.id} />
                 </div>
               ))}
             </div>

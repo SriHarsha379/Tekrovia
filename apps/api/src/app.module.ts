@@ -1,3 +1,4 @@
+import { ResourceModule } from './resource/resource.module';
 import { DeliveryModule } from './delivery/delivery.module';
 import { LiveClassModule } from './live-class/live-class.module';
 import { BatchModule } from './batch/batch.module';
@@ -19,7 +20,7 @@ import { AdminModule } from './admin/admin.module';
 import { CheckpointModule } from './checkpoint/checkpoint.module';
 
 @Module({
-  imports: [DeliveryModule, LiveClassModule, BatchModule, SupportModule, 
+  imports: [ResourceModule, DeliveryModule, LiveClassModule, BatchModule, SupportModule, 
     ConfigModule.forRoot({
       isGlobal: true,
     }),

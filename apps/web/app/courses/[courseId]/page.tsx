@@ -23,6 +23,7 @@ export default function CourseDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [checkpoints, setCheckpoints] = useState<any[]>([]);
+  const [resources, setResources] = useState<any[]>([]);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const lastSavedAt = useRef(0);
@@ -85,6 +86,11 @@ export default function CourseDetailPage() {
       watched.current = data.progress?.watchedSeconds ?? 0;
       lastSavedAt.current = 0;
       setLesson(data);
+
+      const extra = await fetch(`${API}/api/v1/resources/lesson/${lessonId}`, {
+        headers: { Authorization: `Bearer ${t}` },
+      });
+      setResources(extra.ok ? await extra.json() : []);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch {
       setError('Could not open that lesson.');
@@ -218,6 +224,41 @@ export default function CourseDetailPage() {
                 {lesson.content}
               </div>
             ) : null}
+
+            {resources.length > 0 && (
+              <div className="space-y-3 border-t pt-4">
+                {resources.map((r: any) => (
+                  <details key={r.id} className="rounded-lg border bg-gray-50/60 p-4">
+                    <summary className="flex cursor-pointer items-center justify-between gap-3 font-medium">
+                      <span className="flex items-center gap-2">
+                        <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                          r.type === 'LAB' ? 'bg-emerald-100 text-emerald-800'
+                          : r.type === 'ACTIVITY' ? 'bg-sky-100 text-sky-800'
+                          : r.type === 'INTERVIEW_QUESTIONS' ? 'bg-violet-100 text-violet-800'
+                          : r.type === 'DOWNLOAD' ? 'bg-amber-100 text-amber-800'
+                          : 'bg-slate-200 text-slate-700'
+                        }`}>
+                          {r.type === 'INTERVIEW_QUESTIONS' ? 'Interview questions'
+                            : r.type.charAt(0) + r.type.slice(1).toLowerCase()}
+                        </span>
+                        {r.title}
+                      </span>
+                    </summary>
+                    {r.body && (
+                      <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-gray-700">
+                        {r.body}
+                      </p>
+                    )}
+                    {r.url && (
+                      <a href={r.url} target="_blank" rel="noreferrer"
+                        className="mt-3 inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium hover:bg-white">
+                        Open resource →
+                      </a>
+                    )}
+                  </details>
+                ))}
+              </div>
+            )}
 
             <Button variant="outline" size="sm" onClick={() => setLesson(null)}>
               Close lesson

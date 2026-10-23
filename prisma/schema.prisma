@@ -450,6 +450,7 @@ model Lesson {
 
   progress LessonProgress[]
   assignment Assignment?
+  resources  LessonResource[]
 
   @@unique([moduleId, sortOrder])
   @@index([moduleId])
@@ -972,4 +973,36 @@ model ClassAttendance {
   @@unique([liveClassId, userId])
   @@index([userId, status])
   @@map("class_attendance")
+}
+
+enum ResourceType {
+  LAB
+  ACTIVITY
+  INTERVIEW_QUESTIONS
+  READING
+  DOWNLOAD
+}
+
+/// Anything a trainer attaches to a lesson beyond the video and notes:
+/// guided labs, practical activities, interview questions, further reading.
+model LessonResource {
+  id          String       @id @default(cuid())
+  lessonId    String
+  lesson      Lesson       @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  type        ResourceType @default(READING)
+  title       String
+  body        String?      @db.Text
+  url         String?
+
+  // Shown to students only when published.
+  isPublished Boolean      @default(true)
+  sortOrder   Int          @default(0)
+
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@unique([lessonId, sortOrder])
+  @@index([lessonId, type])
+  @@map("lesson_resources")
 }
