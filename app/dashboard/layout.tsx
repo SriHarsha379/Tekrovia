@@ -5,18 +5,22 @@ import { usePathname } from "next/navigation";
 import { useAuthStore } from "../../src/store/auth";
 import {
   LayoutDashboard, BookOpen, ClipboardList, FolderKanban,
-  BrainCircuit, Briefcase, Headphones, User, LogOut, ChevronRight,
+  BrainCircuit, Briefcase, Headphones, User, LogOut,
+  ChevronRight, Video,
 } from "lucide-react";
 
 const NAV = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/dashboard/courses", label: "My Courses", icon: BookOpen },
-  { href: "/dashboard/assessments", label: "Assessments", icon: ClipboardList },
-  { href: "/dashboard/projects", label: "Projects", icon: FolderKanban },
-  { href: "/dashboard/mock", label: "Mock Interviews", icon: BrainCircuit },
-  { href: "/dashboard/placement", label: "Placement", icon: Briefcase },
-  { href: "/dashboard/support", label: "Support", icon: Headphones },
-  { href: "/dashboard/profile", label: "Profile", icon: User },
+  { href: "/dashboard",             label: "Dashboard",      icon: LayoutDashboard },
+  { href: "/dashboard/courses",     label: "My Courses",     icon: BookOpen },
+  { href: "/dashboard/classes",     label: "Live Classes",   icon: Video },
+  { href: "/dashboard/assessments", label: "Assessments",    icon: ClipboardList },
+  { href: "/dashboard/assignments", label: "Assignments",    icon: ClipboardList },
+  { href: "/dashboard/projects",    label: "Projects",       icon: FolderKanban },
+  { href: "/dashboard/mock",        label: "Mock Interviews",icon: BrainCircuit },
+  { href: "/dashboard/resume",      label: "Resume Builder",  icon: FileText },
+  { href: "/dashboard/placement",   label: "Placement",      icon: Briefcase },
+  { href: "/dashboard/support",     label: "Support",        icon: Headphones },
+  { href: "/dashboard/profile",     label: "Profile",        icon: User },
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -25,7 +29,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="flex min-h-screen bg-slate-950 text-white">
-      {/* Sidebar */}
       <aside className="hidden w-64 shrink-0 flex-col border-r border-white/10 bg-slate-900/60 md:flex">
         <div className="flex h-16 items-center border-b border-white/10 px-6">
           <Link href="/" className="text-xl font-bold tracking-tight">
@@ -33,9 +36,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </Link>
         </div>
 
-        <nav className="flex-1 space-y-1 px-3 py-4">
+        <nav className="flex-1 space-y-0.5 px-3 py-4 overflow-y-auto">
           {NAV.map(({ href, label, icon: Icon }) => {
-            const active = pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
+            const active = pathname === href ||
+              (href !== "/dashboard" && pathname.startsWith(href));
             return (
               <Link
                 key={href}
@@ -65,7 +69,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
           </div>
           <button
-            onClick={() => logout()}
+            onClick={logout}
             className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-400 transition hover:bg-red-500/10 hover:text-red-400"
           >
             <LogOut className="h-4 w-4" />
@@ -74,24 +78,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
       </aside>
 
-      {/* Main */}
       <div className="flex flex-1 flex-col">
-        {/* Mobile topbar */}
         <header className="flex h-16 items-center justify-between border-b border-white/10 bg-slate-900/60 px-6 md:hidden">
           <Link href="/" className="text-xl font-bold tracking-tight">
             Tek<span className="text-indigo-400">Rovia</span>
           </Link>
-          <button
-            onClick={() => logout()}
-            className="text-sm text-slate-400 hover:text-white"
-          >
+          <button onClick={logout} className="text-sm text-slate-400 hover:text-white">
             Log out
           </button>
         </header>
-
-        <main className="flex-1 overflow-y-auto p-6">
-          {children}
-        </main>
+        <main className="flex-1 overflow-y-auto p-6">{children}</main>
       </div>
     </div>
   );
