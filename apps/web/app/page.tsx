@@ -1,5 +1,4 @@
 import Link from "next/link";
-import LeadCaptureForm from "../src/components/LeadCaptureForm";
 
 const features = [
   {
@@ -159,7 +158,6 @@ export default function HomePage() {
                 Takes under a minute. No payment details needed.
               </p>
               <div className="mt-6">
-                <LeadCaptureForm />
               </div>
             </div>
           </div>
