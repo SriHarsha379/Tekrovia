@@ -18,7 +18,7 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>;
 
 function setAuthCookie(token: string) {
-  document.cookie = `tekrovia_token=${token}; path=/; max-age=${60 * 60 * 24 * 7}`;
+  document.cookie = `tekrovia_token=${token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
 }
 
 const ADMIN_ROLES = ["ADMIN", "SUPER_ADMIN", "TRAINER", "COUNSELLOR", "SUPPORT_STAFF", "PLACEMENT_MANAGER"];
@@ -35,21 +35,24 @@ export default function LoginPage() {
   const [loading, setLoading]           = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [pendingEmail, setPendingEmail] = useState<string | null>(null);
-  
   const [otp, setOtp]                   = useState("");
   const [devOtp, setDevOtp]             = useState<string | null>(null);
   const [otpLoading, setOtpLoading]     = useState(false);
 
-  const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
+  const { register, handleSubmit, setValue, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
   });
+
+  const fillDemo = (email: string) => {
+    setValue("email", email, { shouldValidate: true });
+    setValue("password", "TestPass123!", { shouldValidate: true });
+  };
 
   const onSubmit = async (data: FormData) => {
     setLoading(true);
     try {
       const res = await loginUser({ email: data.email, password: data.password });
 
-      // Password login — direct session
       if (res.accessToken) {
         login(res.accessToken, res.user);
         setAuthCookie(res.accessToken);
@@ -57,10 +60,7 @@ export default function LoginPage() {
         return;
       }
 
-      // OTP flow — store role for redirect after verify
       setPendingEmail(data.email);
-      
-
       if (res.otp) {
         setDevOtp(res.otp);
         setOtp(res.otp);
@@ -96,7 +96,10 @@ export default function LoginPage() {
     return (
       <main className="flex min-h-screen items-center justify-center bg-slate-950 px-4">
         <div className="w-full max-w-md rounded-2xl border border-white/10 bg-slate-900/60 p-8 text-center">
-          <h2 className="text-xl font-bold text-white">Check your email</h2>
+          <Link href="/" className="text-2xl font-bold tracking-tight text-white">
+            Tek<span className="text-indigo-400">Rovia</span>
+          </Link>
+          <h2 className="mt-6 text-xl font-bold text-white">Check your email</h2>
           <p className="mt-2 text-sm text-slate-400">
             6-digit code sent to <span className="text-white">{pendingEmail}</span>
           </p>
@@ -156,8 +159,8 @@ export default function LoginPage() {
             <input
               {...register("email")}
               type="email"
-              placeholder="you@example.com"
               autoComplete="email"
+              placeholder="you@example.com"
               className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder-slate-500 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
             />
             {errors.email && <p className="mt-1 text-xs text-red-400">{errors.email.message}</p>}
@@ -169,8 +172,8 @@ export default function LoginPage() {
               <input
                 {...register("password")}
                 type={showPassword ? "text" : "password"}
-                placeholder="••••••••"
                 autoComplete="current-password"
+                placeholder="••••••••"
                 className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 pr-10 text-sm text-white placeholder-slate-500 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
               />
               <button
@@ -199,33 +202,27 @@ export default function LoginPage() {
           </p>
         </form>
 
-        {/* Dev mode hint */}
+        {/* Demo accounts — use setValue so React Hook Form picks it up */}
         <div className="mt-4 rounded-xl border border-white/5 bg-slate-900/30 p-4">
-          <p className="text-xs font-semibold text-slate-500 mb-2">Demo accounts</p>
-          <div className="space-y-1.5">
+          <p className="text-xs font-semibold text-slate-500 mb-2">Demo accounts — click to fill</p>
+          <div className="space-y-2">
             <button
-              onClick={() => {
-                const emailInput = document.querySelector('input[type="email"]') as HTMLInputElement;
-                const passInput  = document.querySelector('input[type="password"], input[type="text"][placeholder="••••••••"]') as HTMLInputElement;
-                if (emailInput) emailInput.value = "demo.student@tekrovia.dev";
-                if (passInput)  passInput.value  = "TestPass123!";
-              }}
+              type="button"
+              onClick={() => fillDemo("demo.student@tekrovia.dev")}
               className="flex w-full items-center gap-2 rounded-lg bg-white/5 px-3 py-2 text-left text-xs text-slate-400 hover:bg-white/10 hover:text-white transition"
             >
               👤 Student — <span className="text-slate-300">demo.student@tekrovia.dev</span>
             </button>
             <button
-              onClick={() => {
-                const emailInput = document.querySelector('input[type="email"]') as HTMLInputElement;
-                const passInput  = document.querySelector('input[type="password"], input[type="text"]') as HTMLInputElement;
-                if (emailInput) emailInput.value = "admin@tekrovia.dev";
-                if (passInput)  passInput.value  = "TestPass123!";
-              }}
+              type="button"
+              onClick={() => fillDemo("admin@tekrovia.dev")}
               className="flex w-full items-center gap-2 rounded-lg bg-white/5 px-3 py-2 text-left text-xs text-slate-400 hover:bg-white/10 hover:text-white transition"
             >
               🛡️ Admin — <span className="text-slate-300">admin@tekrovia.dev</span>
             </button>
-            <p className="px-3 text-xs text-slate-600">Password: TestPass123! · OTP auto-fills in dev mode</p>
+            <p className="px-3 text-xs text-slate-600">
+              Password auto-fills · OTP auto-fills in dev mode
+            </p>
           </div>
         </div>
       </div>
