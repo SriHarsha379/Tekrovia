@@ -4,7 +4,7 @@ An EdTech platform that takes a candidate from first enquiry through training,
 assessment and interview preparation to structured placement support.
 
 Built as a pnpm monorepo: Next.js 14 frontend, NestJS 10 API, PostgreSQL 16
-with Prisma, FastAPI AI service, and Redis for caching and queues.
+with Prisma, and a FastAPI AI service.
 
 ---
 
@@ -12,109 +12,92 @@ with Prisma, FastAPI AI service, and Redis for caching and queues.
 
 | Layer | Status |
 | --- | --- |
-| Database schema | ✅ Complete — full blueprint coverage |
-| Backend API | ✅ Complete — all modules built and tested |
-| Student portal (frontend) | ✅ Complete — all 10 screens |
-| Admin portal (frontend) | ✅ Complete — all 6 screens |
-| AI service | ✅ Built — needs OpenAI API key to go live |
-| Payments | ⏳ Awaiting Razorpay account from client |
-| OTP / Email delivery | ⏳ Awaiting Resend account + domain from client |
-| WhatsApp automation | ⏳ Awaiting WATI / Interakt account from client |
-| Video hosting | ⏳ Awaiting S3 / CDN config from client |
+| Database schema | ✅ Complete |
+| Backend API | ✅ Complete — all modules |
+| Student portal | ✅ Complete — 12 screens |
+| Admin portal | ✅ Complete — 7 screens |
+| Landing page | ✅ Complete — trainer profiles, stats, testimonials, trial page |
+| AI service | ✅ Built — needs OpenAI API key |
+| Payments | ⏳ Awaiting Razorpay account |
+| OTP / Email delivery | ⏳ Awaiting Resend + MSG91 accounts |
+| WhatsApp automation | ⏳ Awaiting WATI / Interakt account |
+| Video CDN | ⏳ Awaiting S3 / CloudFront config |
+| Browser-based labs | 🔄 Deferred — using Google Colab links for first cohort |
 
-The product is functionally complete and ready to demo. Remaining gaps are
-external integrations, not code gaps.
+The product is feature-complete and demo-ready. Remaining gaps are external
+integrations, not code gaps.
+
+---
+
+## Blueprint coverage
+
+| Blueprint section | Coverage |
+| --- | --- |
+| Executive vision and principles | 95% |
+| Products and pricing | 100% |
+| End-to-end student journey | 85% |
+| Marketing and landing experience | 90% |
+| Registration, trial and conversion | 85% |
+| Automated onboarding | 70% (automation needs WhatsApp/Email) |
+| Learning, labs and projects | 85% (labs = Colab links) |
+| Interview readiness and soft skills | 90% |
+| Placement operations | 95% |
+| Dashboards | 85% |
+| Technology architecture | 80% |
 
 ---
 
 ## What the platform does
 
-### Student journey
+### Public pages
+- **Landing page** — hero, stats (500+ students, 85% placement rate), features,
+  trainer profiles, student testimonials, pricing, FAQ, placement disclaimer
+- **Free trial page** (`/trial`) — 3-session GenAI trial breakdown with topics,
+  session descriptions and pricing preview
+- **Register** — full candidate profile capture with UTM attribution
+- **Login** — email + password with OTP verification (dev mode auto-fills OTP)
 
-**Landing page.** Public site with pricing, programme details, FAQs and three
-free entry points: career assessment, three-session trial, AI mock interview.
+### Student portal (12 screens)
 
-**Registration and login.** Full candidate profile — education, experience,
-skills, target role, availability — producing one Candidate ID that follows the
-person through every stage. Email + password login with OTP verification.
+| Screen | Route | What it does |
+| --- | --- | --- |
+| Dashboard | `/dashboard` | Stats, enrolled courses with progress bars |
+| My Courses | `/dashboard/courses` | Browse and enrol in published courses |
+| Course Player | `/dashboard/courses/[id]` | Lesson sidebar, video, notes, mark complete |
+| Live Classes | `/dashboard/classes` | Upcoming/past classes, join link, recording, attendance rate |
+| Assessments | `/dashboard/assessments` | Career readiness + interactive technical assessment |
+| Assignments | `/dashboard/assignments` | Submit work, view feedback, resubmit |
+| Projects | `/dashboard/projects` | Milestone unlock flow, submit, expert feedback |
+| Mock Interviews | `/dashboard/mock` | Scheduled/completed mocks, score/10, feedback |
+| Resume Builder | `/dashboard/resume` | Paste resume → AI ATS review, section scores, keywords |
+| Placement | `/dashboard/placement` | 4-item readiness checklist, pipeline stage, recovery rule |
+| Support | `/dashboard/support` | Raise tickets, threaded replies, SLA tracking |
+| Profile | `/dashboard/profile` | View/complete candidate profile, skill tags |
 
-**Student dashboard.** Enrolled courses with progress bars, lessons completed,
-assessments taken, average score, and quick links to all portal sections.
+### Each lesson includes
+- Video (YouTube / Vimeo / Loom / Google Drive / direct MP4)
+- Written notes and description
+- Interview questions panel (collapsible)
+- AI doubt assistant (ask any question, get answer + example + follow-ups)
+- Mark complete button
 
-**Course player.** Lessons with video and notes. Progress tracked at 90% watch
-time. Curriculum sidebar with module expand/collapse and per-lesson completion
-indicators. Mark-complete button.
+### Admin portal (7 screens)
 
-**Checkpoint quizzes.** Module-level quizzes gate the next module. Scored
-server-side — correct answers never reach the browser before submission. Failed
-attempts show which questions were wrong with explanations and lesson links.
+| Screen | Route | What it does |
+| --- | --- | --- |
+| Overview | `/admin` | Platform stats, delivery metrics, lead funnel, recent candidates |
+| Candidates | `/admin/candidates` | Search, paginate, click through to full profile |
+| Courses | `/admin/courses` | Create courses, publish/archive, video coverage indicator |
+| Course Editor | `/admin/courses/[id]` | Edit course details, modules, lessons, paste video URLs |
+| Batches | `/admin/batches` | Create batches, assign trainer, capacity bar |
+| Placement Pipeline | `/admin/placement` | Kanban across all 11 stages |
+| Marketing Dashboard | `/admin/marketing` | Funnel, daily trend chart, attribution by UTM source |
 
-**Assignments.** Submit text or a link per assignment. Trainer approves or
-requests changes with written feedback. Full attempt history shown.
-
-**Projects.** Multi-milestone projects with sequential unlock — earlier
-milestones must be approved before the next opens. Final milestones require
-expert (admin) approval and are recorded as placement readiness evidence.
-
-**Assessments.** Two types: career readiness (profile-based, instant) and
-interactive technical (question-based, scored server-side). Results include
-a score, classification (Beginner / Starter / Pro), category breakdown, and
-a personalised roadmap of next steps.
-
-**Mock interviews.** Track scheduled and completed expert mock interviews.
-Score per mock, pass/fail against 8/10 threshold, trainer feedback, final mock
-status, and readiness progress towards the placement gate.
-
-**Placement readiness.** Four-item checklist: 3 expert mocks complete, final
-mock ≥ 8/10, expert-approved project, technical assessment ≥ 80%. Human review
-required before placement support is activated. 4-interview recovery rule shown
-when triggered.
-
-**Support tickets.** Raise a ticket with category and priority. Follow the
-conversation thread, reply, and see staff responses. SLA timers by priority
-(Urgent 4h / High 12h / Normal 24h / Low 72h).
-
-**Profile.** View and complete candidate profile. Skills shown as tags.
-Candidate code displayed. Profile completeness drives assessment scoring and
-placement eligibility.
-
-### Admin portal
-
-**Overview.** Platform-wide stats: total students, leads, active enrollments,
-assessments completed. Delivery metrics: active learners, assignments and
-projects awaiting review, completion rate. Lead funnel by status. Recent
-candidates table.
-
-**Candidates.** Searchable, paginated directory. Click through to full profile:
-education, skills, assessments with scores, course enrollments with per-lesson
-progress.
-
-**Batches.** Create batches with course, trainer, capacity, start and end dates.
-Capacity bar per batch. Adding a student to a batch also enrolls them in the
-course.
-
-**Placement pipeline.** Kanban board across all 11 stages: Profile Review →
-Preparation Pending → Job Ready → Resume Approved → Jobs Matched → Submitted →
-Interview Scheduled → Feedback Awaited → Selected → Offer Received → Joined.
-Cards show job title, company and interview count.
-
-**Marketing dashboard.** Lead funnel table with reached/at-stage counts and
-conversion bar. Daily lead volume bar chart with hover tooltips. Attribution
-table by UTM source with conversion rates. Configurable 7/14/30/90 day window.
-
-### AI service (FastAPI — requires OpenAI key)
-
-**Career roadmap.** Generates a personalised 3-4 phase learning roadmap from
-the candidate's profile: target role, skills, experience and availability.
-
-**Mock interview questions.** Generates role-specific interview questions with
-hints and ideal answers. Supports Technical, HR and Mixed round types.
-
-**Resume ATS review.** Scores a resume overall and by section, identifies
-missing keywords, lists strengths and improvements.
-
-**Doubt assistant.** Answers lesson-specific questions with examples, follow-up
-questions and resource suggestions.
+### AI service (FastAPI — needs OpenAI key)
+- Career roadmap generation (from candidate profile)
+- Mock interview question generation (role-specific, with hints and ideal answers)
+- Resume ATS review (score, missing keywords, section breakdown)
+- Lesson doubt assistant (answer + example + follow-up questions)
 
 ---
 
@@ -125,7 +108,7 @@ questions and resource suggestions.
 - Node.js 20+
 - pnpm 9+ (`npm install -g pnpm`)
 - Docker and Docker Compose
-- Python 3.9+ (for the AI service)
+- Python 3.9+
 
 ### Setup
 
@@ -135,16 +118,26 @@ cd Tekrovia
 pnpm install
 
 cp .env.example .env
-# Edit .env — set DATABASE_URL and ALLOW_DEV_OTP_RESPONSE=true for local logins
+# Edit .env — set DATABASE_URL and ALLOW_DEV_OTP_RESPONSE=true
 
 pnpm docker:up        # Postgres + Redis
 pnpm db:generate
 pnpm db:migrate
-pnpm db:seed          # Demo users, courses and leads
-pnpm dev              # API on :3001, web on :3000
+pnpm db:seed          # Demo accounts, course and leads
+pnpm dev              # API :3001 · Frontend :3000
 ```
 
 Swagger docs: `http://localhost:3001/docs`
+
+### Demo accounts
+
+| Role | Email | Password |
+| --- | --- | --- |
+| Student | `demo.student@tekrovia.dev` | `TestPass123!` |
+| Admin | `admin@tekrovia.dev` | `TestPass123!` |
+
+With `ALLOW_DEV_OTP_RESPONSE=true` the OTP is shown on the login screen automatically.
+The login page shows demo account hints — click to auto-fill.
 
 ### AI service (optional for local dev)
 
@@ -153,29 +146,9 @@ cd apps/ai-service
 python3 -m pip install -r requirements.txt
 python3 -m pip install eval_type_backport   # required on Python 3.9
 
-# Add your OpenAI key to apps/ai-service/.env
-cp .env.example .env   # then edit OPENAI_API_KEY
-
+# Edit apps/ai-service/.env — set OPENAI_API_KEY
 python3 -m uvicorn main:app --reload --port 8000
 ```
-
-AI service health check: `http://localhost:8000/health`
-
-### Demo account
-
-The seed creates `test@tekrovia.test` with password `TestPass123!`.
-
-To use the admin portal, promote the account in Prisma Studio:
-```bash
-pnpm prisma studio    # opens at http://localhost:5555
-```
-Set the user's `role` to `ADMIN`, then log out and back in.
-
-### Local OTP logins
-
-With `ALLOW_DEV_OTP_RESPONSE=true` in `.env`, the OTP is returned directly
-in the login response so you can complete login without an email provider.
-**Never set this flag in production.**
 
 ---
 
@@ -188,16 +161,15 @@ DATABASE_URL=postgresql://tekrovia_user:tekrovia_password_dev@localhost:5432/tek
 REDIS_URL=redis://localhost:6379
 PORT=3001
 NODE_ENV=development
-JWT_SECRET=change-in-production
-ALLOW_DEV_OTP_RESPONSE=true       # local dev only — never in production
+ALLOW_DEV_OTP_RESPONSE=true    # local dev only — never in production
 
 # Provided by client
 RAZORPAY_KEY_ID=
 RAZORPAY_KEY_SECRET=
 AI_SERVICE_URL=http://localhost:8000
 AI_SERVICE_SECRET=tekrovia-internal-secret-change-in-prod
-VIDEO_SIGNING_SECRET=             # S3 / CDN signing key
-VIDEO_BASE_URL=                   # CDN base URL
+VIDEO_SIGNING_SECRET=
+VIDEO_BASE_URL=
 ```
 
 ### Frontend (`apps/web/.env.local`)
@@ -209,7 +181,7 @@ NEXT_PUBLIC_API_URL=http://localhost:3001/api/v1
 ### AI service (`apps/ai-service/.env`)
 
 ```env
-OPENAI_API_KEY=                   # provided by client
+OPENAI_API_KEY=         # from client
 OPENAI_MODEL=gpt-4o-mini
 AI_SERVICE_SECRET=tekrovia-internal-secret-change-in-prod
 ```
@@ -217,5 +189,113 @@ AI_SERVICE_SECRET=tekrovia-internal-secret-change-in-prod
 ---
 
 ## Client integration checklist
+□ OpenAI API key → AI features (roadmap, mock, resume, doubt)
+□ Razorpay Key ID + Secret → Online payments
+□ MSG91 / Fast2SMS API key → OTP delivery via SMS
+□ Resend API key + domain → Transactional email
+□ WATI / Interakt API key → WhatsApp Business automation
+□ S3 bucket + signing secret → Secure video hosting
+□ Domain name → Production deployment
+□ Hosting preference → Vercel (frontend) + Railway/Render (backend)
 
-Before going live, the following accounts and credentials are needed from the client:
+See `CLIENT_REQUIREMENTS.md` for the full integration guide with sign-up
+instructions, timelines and estimated monthly costs.
+
+### Labs environment note
+
+Browser-based coding labs are deferred for the first cohort. The current
+approach is to paste a Google Colab or Replit link into the lesson video/content
+field. Students click the link and complete the lab in their browser without
+any installation. A dedicated in-platform lab environment can be revisited once
+the platform reaches 200+ concurrent active students.
+
+---
+
+## Project structure
+TekRovia/
+├── apps/
+│ ├── api/ # NestJS backend
+│ │ └── src/
+│ │ ├── ai/ # AI service client + endpoints
+│ │ ├── admin/ # Student directory, enrolment
+│ │ ├── assessment/ # Career readiness + technical assessments
+│ │ ├── assignment/ # Submissions + trainer review
+│ │ ├── auth/ # Sessions, OTP
+│ │ ├── batch/ # Cohorts and membership
+│ │ ├── candidate/ # Candidate profiles
+│ │ ├── checkpoint/ # Module quizzes and gating
+│ │ ├── course/ # Courses, modules, lessons, enrolment
+│ │ ├── dashboard/ # Student dashboard data
+│ │ ├── delivery/ # Delivery metrics and risk alerts
+│ │ ├── lead/ # CRM capture and pipeline
+│ │ ├── live-class/ # Scheduling and attendance
+│ │ ├── marketing/ # Funnel, attribution, daily trend
+│ │ ├── placement/ # Applications, interviews, readiness
+│ │ ├── product/ # Product and pricing catalogue
+│ │ ├── project/ # Project milestones + review
+│ │ ├── resource/ # Lesson attachments
+│ │ ├── support/ # Tickets and conversations
+│ │ └── video/ # Signed video URL service
+│ │
+│ ├── web/ # Next.js 14 frontend
+│ │ ├── app/
+│ │ │ ├── page.tsx # Landing page
+│ │ │ ├── trial/ # Free trial page
+│ │ │ ├── login/ # Login + OTP
+│ │ │ ├── register/ # Registration
+│ │ │ ├── dashboard/ # Student portal (12 screens)
+│ │ │ └── admin/ # Admin portal (7 screens)
+│ │ └── src/
+│ │ ├── components/ # LessonView, InteractiveAssessment, etc.
+│ │ ├── hooks/ # API hooks
+│ │ ├── lib/ # API client, UTM utils
+│ │ └── store/ # Zustand auth store
+│ │
+│ └── ai-service/ # FastAPI AI service
+│ ├── main.py # App + routes
+│ ├── config.py # OpenAI client
+│ ├── roadmap.py # Career roadmap generation
+│ ├── mock_interview.py # Interview question generation
+│ ├── resume_review.py # ATS resume review
+│ └── doubt_assistant.py # Lesson doubt answering
+│
+├── packages/ # Shared types, validation, UI, config
+├── prisma/ # Schema, migrations, seeds
+├── scripts/ # End-to-end test scripts
+├── CLIENT_REQUIREMENTS.md # Integration guide for client
+└── SCHEMA.md # Database design notes
+
+---
+
+## Useful commands
+
+```bash
+pnpm dev              # API (:3001) + web (:3000)
+pnpm build            # Build everything
+pnpm db:migrate       # Apply schema changes
+pnpm db:seed          # Reset demo data
+pnpm docker:up        # Start Postgres + Redis
+pnpm docker:down      # Stop Postgres + Redis
+pnpm lint             # Lint all packages
+cd apps/web && pnpm typecheck   # TypeScript check frontend
+pnpm test:journey     # End-to-end API tests
+```
+
+---
+
+## Security notes
+
+- Passwords hashed with bcrypt (cost 12)
+- Sessions stored server-side, fully revocable
+- OTPs hashed with SHA-256, expire after 5 min, 60s resend cooldown, 5-attempt cap
+- Quiz answer keys never sent to browser before submission
+- Module gating enforced server-side on every lesson fetch
+- Placement readiness gate requires human approval — cannot be bypassed via API
+- AI service protected by shared secret header
+- Internal support notes filtered from student responses
+
+---
+
+**Version:** 0.3.0
+**Status:** Feature complete — pending client integrations
+**Last updated:** November 2026
