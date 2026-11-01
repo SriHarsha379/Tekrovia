@@ -20,6 +20,7 @@ import { ProjectModule } from './project/project.module';
 import { PlacementModule } from './placement/placement.module';
 import { AdminModule } from './admin/admin.module';
 import { CheckpointModule } from './checkpoint/checkpoint.module';
+import { AiModule } from './ai/ai.module';
 
 @Module({
   imports: [VideoModule, MarketingModule, ResourceModule, DeliveryModule, LiveClassModule, BatchModule, SupportModule, 
@@ -39,6 +40,7 @@ import { CheckpointModule } from './checkpoint/checkpoint.module';
     PlacementModule,
     AdminModule,
     CheckpointModule,
+    AiModule,
   ],
 })
 export class AppModule {}

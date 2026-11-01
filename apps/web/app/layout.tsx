@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import UtmCapture from "../src/components/UtmCapture";
+import Providers from "../src/components/Providers";
+import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
   title: "TekRovia | Learning to Placement",
@@ -9,14 +11,15 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
       <body>
-        <UtmCapture />
-        {children}
+        <Providers>
+          <UtmCapture />
+          {children}
+          <Toaster position="top-right" richColors />
+        </Providers>
       </body>
     </html>
   );
