@@ -10,16 +10,13 @@ import { toast } from "sonner";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 import { loginUser, verifyOtp } from "../../src/hooks/useAuth";
 import { useAuthStore } from "../../src/store/auth";
+import { setAuthCookie } from "../../src/lib/cookie";
 
 const schema = z.object({
   email:    z.string().email("Enter a valid email"),
   password: z.string().min(1, "Password is required"),
 });
 type FormData = z.infer<typeof schema>;
-
-function setAuthCookie(token: string) {
-  document.cookie = `tekrovia_token=${token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
-}
 
 const ADMIN_ROLES = ["ADMIN", "SUPER_ADMIN", "TRAINER", "COUNSELLOR", "SUPPORT_STAFF", "PLACEMENT_MANAGER"];
 
@@ -52,14 +49,12 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const res = await loginUser({ email: data.email, password: data.password });
-
       if (res.accessToken) {
         login(res.accessToken, res.user);
         setAuthCookie(res.accessToken);
         router.push(getRedirectPath(res.user.role, searchParams.get("next")));
         return;
       }
-
       setPendingEmail(data.email);
       if (res.otp) {
         setDevOtp(res.otp);
@@ -91,7 +86,6 @@ export default function LoginPage() {
     }
   };
 
-  // OTP step
   if (pendingEmail) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-slate-950 px-4">
@@ -103,14 +97,12 @@ export default function LoginPage() {
           <p className="mt-2 text-sm text-slate-400">
             6-digit code sent to <span className="text-white">{pendingEmail}</span>
           </p>
-
           {devOtp && (
             <div className="mt-4 rounded-xl border border-amber-400/20 bg-amber-500/10 px-4 py-3">
               <p className="text-xs font-semibold text-amber-400">Dev mode — OTP auto-filled</p>
               <p className="mt-1 text-2xl font-bold tracking-widest text-amber-300">{devOtp}</p>
             </div>
           )}
-
           <input
             type="text"
             inputMode="numeric"
@@ -150,10 +142,7 @@ export default function LoginPage() {
           <p className="mt-2 text-sm text-slate-400">Sign in to continue your journey</p>
         </div>
 
-        <form
-          onSubmit={handleSubmit(onSubmit)}
-          className="space-y-5 rounded-2xl border border-white/10 bg-slate-900/60 p-8"
-        >
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5 rounded-2xl border border-white/10 bg-slate-900/60 p-8">
           <div>
             <label className="mb-1.5 block text-sm font-medium text-slate-300">Email</label>
             <input
@@ -161,11 +150,10 @@ export default function LoginPage() {
               type="email"
               autoComplete="email"
               placeholder="you@example.com"
-              className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder-slate-500 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+              className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-sm text-white placeholder-slate-500 outline-none focus:border-indigo-500"
             />
             {errors.email && <p className="mt-1 text-xs text-red-400">{errors.email.message}</p>}
           </div>
-
           <div>
             <label className="mb-1.5 block text-sm font-medium text-slate-300">Password</label>
             <div className="relative">
@@ -174,55 +162,36 @@ export default function LoginPage() {
                 type={showPassword ? "text" : "password"}
                 autoComplete="current-password"
                 placeholder="••••••••"
-                className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 pr-10 text-sm text-white placeholder-slate-500 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500"
+                className="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 pr-10 text-sm text-white placeholder-slate-500 outline-none focus:border-indigo-500"
               />
-              <button
-                type="button"
-                onClick={() => setShowPassword((s) => !s)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white"
-              >
+              <button type="button" onClick={() => setShowPassword((s) => !s)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white">
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
             {errors.password && <p className="mt-1 text-xs text-red-400">{errors.password.message}</p>}
           </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-500 py-3 text-sm font-semibold text-white transition hover:bg-indigo-400 disabled:opacity-60"
-          >
+          <button type="submit" disabled={loading} className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-500 py-3 text-sm font-semibold text-white transition hover:bg-indigo-400 disabled:opacity-60">
             {loading && <Loader2 className="h-4 w-4 animate-spin" />}
             Sign in
           </button>
-
           <p className="text-center text-sm text-slate-500">
             Don&apos;t have an account?{" "}
             <Link href="/register" className="text-indigo-400 hover:text-indigo-300">Register</Link>
           </p>
         </form>
 
-        {/* Demo accounts — use setValue so React Hook Form picks it up */}
         <div className="mt-4 rounded-xl border border-white/5 bg-slate-900/30 p-4">
           <p className="text-xs font-semibold text-slate-500 mb-2">Demo accounts — click to fill</p>
           <div className="space-y-2">
-            <button
-              type="button"
-              onClick={() => fillDemo("demo.student@tekrovia.dev")}
-              className="flex w-full items-center gap-2 rounded-lg bg-white/5 px-3 py-2 text-left text-xs text-slate-400 hover:bg-white/10 hover:text-white transition"
-            >
+            <button type="button" onClick={() => fillDemo("demo.student@tekrovia.dev")}
+              className="flex w-full items-center gap-2 rounded-lg bg-white/5 px-3 py-2 text-left text-xs text-slate-400 hover:bg-white/10 hover:text-white transition">
               👤 Student — <span className="text-slate-300">demo.student@tekrovia.dev</span>
             </button>
-            <button
-              type="button"
-              onClick={() => fillDemo("admin@tekrovia.dev")}
-              className="flex w-full items-center gap-2 rounded-lg bg-white/5 px-3 py-2 text-left text-xs text-slate-400 hover:bg-white/10 hover:text-white transition"
-            >
+            <button type="button" onClick={() => fillDemo("admin@tekrovia.dev")}
+              className="flex w-full items-center gap-2 rounded-lg bg-white/5 px-3 py-2 text-left text-xs text-slate-400 hover:bg-white/10 hover:text-white transition">
               🛡️ Admin — <span className="text-slate-300">admin@tekrovia.dev</span>
             </button>
-            <p className="px-3 text-xs text-slate-600">
-              Password auto-fills · OTP auto-fills in dev mode
-            </p>
+            <p className="px-3 text-xs text-slate-600">Password auto-fills · OTP auto-fills in dev mode</p>
           </div>
         </div>
       </div>

@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 import { useAuthStore } from "../store/auth";
 import { api } from "../lib/api";
+import { setAuthCookie } from "../lib/cookie";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: 1, staleTime: 30_000 } },
@@ -17,6 +18,8 @@ function TokenSync() {
     if (token !== prevToken.current) {
       if (token) {
         api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+        // Re-sync cookie from store on every page load
+        setAuthCookie(token);
       } else {
         delete api.defaults.headers.common["Authorization"];
       }
