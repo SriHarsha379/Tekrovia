@@ -3,10 +3,6 @@ import type { NextRequest } from "next/server";
 
 const PUBLIC_PATHS = ["/", "/login", "/register", "/verify-otp", "/trial"];
 
-// These paths need auth but we give client a chance to restore token
-// by showing the page briefly instead of hard redirecting
-const SOFT_AUTH_PATHS = ["/admin", "/dashboard"];
-
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -17,15 +13,18 @@ export function middleware(request: NextRequest) {
   if (isPublic) return NextResponse.next();
 
   const token = request.cookies.get("tekrovia_token")?.value;
-  const hasToken = token && token.length > 10;
 
-  if (hasToken) return NextResponse.next();
+  if (token && token.length > 10) return NextResponse.next();
 
-  // No cookie — redirect to login
-  const loginUrl = new URL("/login", request.url);
-  if (pathname !== "/dashboard" && pathname !== "/admin") {
-    loginUrl.searchParams.set("next", pathname);
+  // For dashboard and admin — let the page load and handle auth client-side
+  // This prevents the refresh-to-login issue since the inline script
+  // restores the cookie but only after the page loads
+  if (pathname.startsWith("/dashboard") || pathname.startsWith("/admin")) {
+    return NextResponse.next();
   }
+
+  const loginUrl = new URL("/login", request.url);
+  loginUrl.searchParams.set("next", pathname);
   return NextResponse.redirect(loginUrl);
 }
 
