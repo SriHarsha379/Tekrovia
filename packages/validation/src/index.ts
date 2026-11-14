@@ -3,7 +3,7 @@ import { z } from 'zod';
 export const leadCaptureSchema = z.object({
   name: z.string().trim().min(2).max(150),
   email: z.string().email(),
-  phone: z.string().regex(/^\\+?[0-9]{10,15}$/),
+  phone: z.string().regex(/^\+?[0-9]{10,15}$/),
   courseInterest: z.string().trim().max(150).optional(),
   consent: z.literal(true),
 });

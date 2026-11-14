@@ -73,8 +73,8 @@ export class HmacTokenSigner implements VideoSigner {
   ): boolean {
     if (!Number.isFinite(expires) || expires * 1000 < Date.now()) return false;
     const expected = HmacTokenSigner.digest(secret, reference, expires);
-    const a = Buffer.from(expected);
-    const b = Buffer.from(signature ?? '');
+    const a = Buffer.from(expected, 'hex');
+    const b = Buffer.from(signature ?? '', 'hex');
     return a.length === b.length && timingSafeEqual(a, b);
   }
 }

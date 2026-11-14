@@ -15,6 +15,7 @@ import {
 } from '@nestjs/swagger';
 import { SessionAuthGuard } from '../auth/guards/session-auth.guard';
 import { AssessmentService } from './assessment.service';
+import { SubmitInteractiveDto } from './dto/submit-interactive.dto';
 
 interface AuthenticatedRequest {
   user: {
@@ -55,12 +56,12 @@ export class AssessmentController {
   submitInteractiveAssessment(
     @Req() request: AuthenticatedRequest,
     @Param('id') id: string,
-    @Body('answers') answers: unknown,
+    @Body() body: SubmitInteractiveDto,
   ) {
     return this.assessmentService.submitInteractiveAssessment(
       id,
       request.user.id,
-      answers,
+      body.answers,
     );
   }
 

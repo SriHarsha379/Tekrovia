@@ -59,7 +59,7 @@ export default function RegisterPage() {
     setOtpLoading(true);
     try {
       const res = await verifyOtp({ email, otp });
-      login(res.accessToken, res.user);
+      login(res.user);
       setAuthCookie(res.accessToken);
       router.push("/dashboard");
     } catch (err: any) {

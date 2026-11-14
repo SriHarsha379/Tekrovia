@@ -50,7 +50,7 @@ export default function LoginPage() {
     try {
       const res = await loginUser({ email: data.email, password: data.password });
       if (res.accessToken) {
-        login(res.accessToken, res.user);
+        login(res.user);
         setAuthCookie(res.accessToken);
         router.push(getRedirectPath(res.user.role, searchParams.get("next")));
         return;
@@ -76,7 +76,7 @@ export default function LoginPage() {
     setOtpLoading(true);
     try {
       const res = await verifyOtp({ email: pendingEmail, otp });
-      login(res.accessToken, res.user);
+      login(res.user);
       setAuthCookie(res.accessToken);
       router.push(getRedirectPath(res.user.role, searchParams.get("next")));
     } catch (err: any) {

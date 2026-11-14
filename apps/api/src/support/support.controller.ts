@@ -9,7 +9,7 @@ import { AddCommentDto, CreateTicketDto, UpdateTicketStatusDto } from './dto/sup
 
 interface AuthReq { user: { id: string; role: string } }
 
-const STAFF = ['ADMIN', 'SUPER_ADMIN', 'SUPPORT', 'TRAINER'];
+const STAFF = ['ADMIN', 'SUPER_ADMIN', 'SUPPORT_STAFF', 'TRAINER'];
 
 @ApiTags('support')
 @ApiBearerAuth()

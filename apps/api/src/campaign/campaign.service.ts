@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { LeadStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCampaignDto } from './dto/campaign.dto';
@@ -42,7 +43,7 @@ export class CampaignService {
 
     const leads = await this.prisma.lead.count({ where: { campaignId } });
     const converted = await this.prisma.lead.count({
-      where: { campaignId, status: LeadStatus.ENROLLED },
+      where: { campaignId, status: LeadStatus.CONVERTED },
     });
 
     return {
@@ -69,7 +70,7 @@ export class CampaignService {
         eventType: data.eventType,
         campaignId: data.campaignId,
         leadId: data.leadId,
-        metadata: data.metadata ?? null,
+        metadata: data.metadata !== undefined ? data.metadata as Prisma.InputJsonValue : Prisma.JsonNull,
       },
     });
   }
