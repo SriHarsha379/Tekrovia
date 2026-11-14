@@ -1,106 +1,66 @@
 import {
-  Body,
-  Controller,
-  ForbiddenException,
-  Get,
-  Param,
-  Patch,
-  Post,
-  Query,
-  Req,
-  UseGuards,
+  Body, Controller, ForbiddenException, Get,
+  HttpCode, HttpStatus, Param, Patch, Post, Query, Req, UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { SessionAuthGuard } from '../auth/guards/session-auth.guard';
 import { SupportService } from './support.service';
+import { AddCommentDto, CreateTicketDto, UpdateTicketStatusDto } from './dto/support.dto';
 
-interface AuthenticatedRequest {
-  user: { id: string; role: string };
-}
+interface AuthReq { user: { id: string; role: string } }
+
+const STAFF = ['ADMIN', 'SUPER_ADMIN', 'SUPPORT', 'TRAINER'];
 
 @ApiTags('support')
 @ApiBearerAuth()
 @UseGuards(SessionAuthGuard)
 @Controller('support')
 export class SupportController {
-  constructor(private readonly service: SupportService) {}
+  constructor(private readonly svc: SupportService) {}
 
-  private assertStaff(request: AuthenticatedRequest) {
-    if (!this.service.isStaff(request.user.role)) {
-      throw new ForbiddenException('Support staff access required.');
-    }
+  @Post('tickets')
+  @ApiOperation({ summary: 'Create a support ticket' })
+  create(@Req() req: AuthReq, @Body() dto: CreateTicketDto) {
+    return this.svc.createTicket(req.user.id, dto);
   }
 
-  // ---- staff routes first, so 'queue' and 'agents' are not read as ids ----
+  @Get('tickets/me')
+  @ApiOperation({ summary: 'List my tickets' })
+  listMine(@Req() req: AuthReq, @Query('page') page?: string) {
+    return this.svc.listMine(req.user.id, page ? parseInt(page, 10) : 1);
+  }
 
-  @Get('queue')
-  @ApiOperation({ summary: 'The support queue with status counts (staff)' })
-  queue(
-    @Req() request: AuthenticatedRequest,
-    @Query('status') status?: string,
-    @Query('category') category?: string,
-    @Query('ownerId') ownerId?: string,
-    @Query('overdue') overdue?: string,
-    @Query('search') search?: string,
+  @Get('tickets')
+  @ApiOperation({ summary: 'List all tickets — staff only' })
+  listAll(
+    @Req() req: AuthReq,
     @Query('page') page?: string,
+    @Query('status') status?: string,
   ) {
-    this.assertStaff(request);
-    return this.service.queue({ status, category, ownerId, overdue, search, page });
+    if (!STAFF.includes(req.user.role)) throw new ForbiddenException();
+    return this.svc.listAll(page ? parseInt(page, 10) : 1, status);
   }
 
-  @Get('agents')
-  @ApiOperation({ summary: 'Staff who can own a ticket' })
-  agents(@Req() request: AuthenticatedRequest) {
-    this.assertStaff(request);
-    return this.service.agents();
-  }
-
-  @Patch(':id')
-  @ApiOperation({ summary: 'Update status, priority, category or owner (staff)' })
-  update(
-    @Req() request: AuthenticatedRequest,
-    @Param('id') id: string,
-    @Body() body: { status?: string; priority?: string; category?: string; ownerId?: string | null },
+  @Post('tickets/:id/comments')
+  @ApiOperation({ summary: 'Add comment to ticket' })
+  addComment(
+    @Req() req: AuthReq,
+    @Param('id') ticketId: string,
+    @Body() dto: AddCommentDto,
   ) {
-    this.assertStaff(request);
-    return this.service.update(id, body);
+    const isStaff = STAFF.includes(req.user.role);
+    return this.svc.addComment(ticketId, req.user.id, isStaff, dto);
   }
 
-  // ---- student routes ----
-
-  @Get('mine')
-  @ApiOperation({ summary: 'The tickets you raised' })
-  mine(@Req() request: AuthenticatedRequest) {
-    return this.service.mine(request.user.id);
-  }
-
-  @Post()
-  @ApiOperation({ summary: 'Raise a support ticket' })
-  create(
-    @Req() request: AuthenticatedRequest,
-    @Body() body: {
-      subject: string; body: string; category?: string;
-      priority?: string; courseId?: string; lessonId?: string;
-    },
+  @Patch('tickets/:id/status')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Update ticket status — staff only' })
+  updateStatus(
+    @Req() req: AuthReq,
+    @Param('id') ticketId: string,
+    @Body() dto: UpdateTicketStatusDto,
   ) {
-    return this.service.create(request.user.id, body);
-  }
-
-  @Get(':id')
-  @ApiOperation({ summary: 'One ticket with its conversation' })
-  get(@Req() request: AuthenticatedRequest, @Param('id') id: string) {
-    return this.service.get(request.user.id, request.user.role, id);
-  }
-
-  @Post(':id/comments')
-  @ApiOperation({ summary: 'Reply on a ticket' })
-  comment(
-    @Req() request: AuthenticatedRequest,
-    @Param('id') id: string,
-    @Body() body: { body: string; isInternal?: boolean },
-  ) {
-    return this.service.comment(
-      request.user.id, request.user.role, id, body.body, Boolean(body.isInternal),
-    );
+    if (!STAFF.includes(req.user.role)) throw new ForbiddenException();
+    return this.svc.updateStatus(ticketId, dto);
   }
 }

@@ -34,12 +34,9 @@ export class AssessmentService {
     learningAvailability: string | null;
     careerGapMonths: number;
   }) {
-    const skills = [...new Set(
-      candidate.skills
-        .map((skill) => skill.trim())
-        .filter(Boolean),
-    )];
-
+    const skills = [
+      ...new Set(candidate.skills.map((s) => s.trim()).filter(Boolean)),
+    ];
     const factors: FactorResult[] = [];
 
     const skillsScore = Math.min(skills.length, 5) * 6;
@@ -51,7 +48,7 @@ export class AssessmentService {
       explanation:
         skills.length === 0
           ? 'Add your skills to make your profile more informative.'
-          : `${skills.length} distinct skill(s) listed. This measures profile coverage, not skill proficiency.`,
+          : `${skills.length} distinct skill(s) listed.`,
     });
 
     const experience = Math.max(0, candidate.experienceYears || 0);
@@ -60,7 +57,6 @@ export class AssessmentService {
       experience < 1 ? 8 :
       experience < 3 ? 13 :
       experience < 5 ? 17 : 20;
-
     factors.push({
       key: 'experience',
       label: 'Experience profile',
@@ -68,17 +64,12 @@ export class AssessmentService {
       maxScore: 20,
       explanation:
         experience === 0
-          ? 'Your profile indicates you are at the beginning of your professional experience.'
-          : `${experience} year(s) of experience recorded. This factor reflects profile context, not work quality.`,
+          ? 'No professional experience recorded.'
+          : `${experience} year(s) of experience recorded.`,
     });
 
     const hasEducation = Boolean(candidate.education?.trim());
-    const educationScore = hasEducation
-      ? candidate.graduationYear
-        ? 15
-        : 10
-      : 0;
-
+    const educationScore = hasEducation ? (candidate.graduationYear ? 15 : 10) : 0;
     factors.push({
       key: 'education',
       label: 'Education information',
@@ -86,9 +77,9 @@ export class AssessmentService {
       maxScore: 15,
       explanation: hasEducation
         ? candidate.graduationYear
-          ? 'Education and graduation year are recorded.'
-          : 'Education is recorded; adding a graduation year would complete this profile section.'
-        : 'Add your education details to complete this profile section.',
+          ? 'Education and graduation year recorded.'
+          : 'Education recorded; add graduation year to complete this section.'
+        : 'Add education details.',
     });
 
     const hasTargetRole = Boolean(candidate.targetRole?.trim());
@@ -98,57 +89,35 @@ export class AssessmentService {
       score: hasTargetRole ? 20 : 0,
       maxScore: 20,
       explanation: hasTargetRole
-        ? `Target role recorded: ${candidate.targetRole!.trim()}.`
-        : 'Choose a target role to help tailor your learning and career plan.',
+        ? `Target role: ${candidate.targetRole!.trim()}.`
+        : 'Choose a target role.',
     });
 
-    const hasAvailability = Boolean(
-      candidate.learningAvailability?.trim(),
-    );
+    const hasAvailability = Boolean(candidate.learningAvailability?.trim());
     factors.push({
       key: 'learningAvailability',
       label: 'Learning availability',
       score: hasAvailability ? 15 : 0,
       maxScore: 15,
       explanation: hasAvailability
-        ? `Learning availability recorded: ${candidate.learningAvailability!.trim()}.`
-        : 'Add your learning availability to help create a realistic development plan.',
+        ? `Availability: ${candidate.learningAvailability!.trim()}.`
+        : 'Add learning availability.',
     });
 
-    const score = factors.reduce((total, factor) => total + factor.score, 0);
+    const score = factors.reduce((t, f) => t + f.score, 0);
     const careerGapMonths = Math.max(0, candidate.careerGapMonths || 0);
 
     const nextSteps: string[] = [];
-
-    if (skills.length < 3) {
-      nextSteps.push('Add at least three skills to your profile.');
-    }
-    if (experience === 0) {
-      nextSteps.push(
-        'Build practical experience through guided projects, labs, or internships.',
-      );
-    }
-    if (!hasEducation) {
-      nextSteps.push('Complete the education section of your profile.');
-    }
-    if (!hasTargetRole) {
-      nextSteps.push('Select a target role to focus your learning plan.');
-    }
-    if (!hasAvailability) {
-      nextSteps.push('Record your weekly learning availability.');
-    }
-    if (careerGapMonths > 0) {
-      nextSteps.push(
-        'If useful, discuss your career-gap context with a counsellor and plan a manageable return-to-learning path.',
-      );
-    }
+    if (skills.length < 3) nextSteps.push('Add at least three skills.');
+    if (experience === 0) nextSteps.push('Build experience through guided projects or internships.');
+    if (!hasEducation) nextSteps.push('Complete the education section.');
+    if (!hasTargetRole) nextSteps.push('Select a target role.');
+    if (!hasAvailability) nextSteps.push('Record your weekly learning availability.');
+    if (careerGapMonths > 0)
+      nextSteps.push('Discuss your career gap with a counsellor and plan a return-to-learning path.');
     if (nextSteps.length === 0) {
-      nextSteps.push(
-        'Review your target-role skills and build a portfolio project demonstrating them.',
-      );
-      nextSteps.push(
-        'Use mock interviews and feedback to identify areas for further development.',
-      );
+      nextSteps.push('Build a portfolio project demonstrating your target-role skills.');
+      nextSteps.push('Use mock interviews to identify areas for further development.');
     }
 
     return {
@@ -161,12 +130,14 @@ export class AssessmentService {
         careerGapMonths,
         careerGapAffectsScore: false,
         scoreMeaning:
-          'A profile-completeness and planning estimate. It does not measure technical proficiency, employability, or likelihood of placement.',
+          'A profile-completeness estimate. It does not measure technical proficiency or placement likelihood.',
       },
     };
   }
 
-
+  // ─────────────────────────────────────────────────────────────
+  // INTERACTIVE ASSESSMENT
+  // ─────────────────────────────────────────────────────────────
   async startInteractiveAssessment(userId: string) {
     const candidate = await this.prisma.candidate.findUnique({
       where: { userId },
@@ -179,13 +150,30 @@ export class AssessmentService {
       );
     }
 
+    // ✅ Fix #9 — prevent duplicate IN_PROGRESS assessments
+    const inProgress = await this.prisma.assessment.findFirst({
+      where: {
+        candidateId: candidate.id,
+        type: AssessmentType.TECHNICAL,
+        status: 'IN_PROGRESS',
+      },
+      select: { id: true },
+    });
+
+    if (inProgress) {
+      throw new BadRequestException(
+        'You already have an interactive assessment in progress. Submit or abandon it before starting a new one.',
+      );
+    }
+
     const assessment = await this.prisma.assessment.create({
       data: {
         candidateId: candidate.id,
         createdByUserId: userId,
         type: AssessmentType.TECHNICAL,
         title: 'Interactive Career Skills Assessment',
-        description: 'A question-based assessment covering foundational full-stack development concepts.',
+        description:
+          'A question-based assessment covering foundational full-stack development concepts.',
         status: 'IN_PROGRESS',
         maxScore: INTERACTIVE_QUESTIONS.length,
         responses: {
@@ -200,14 +188,12 @@ export class AssessmentService {
     return {
       assessment,
       totalQuestions: INTERACTIVE_QUESTIONS.length,
-      questions: INTERACTIVE_QUESTIONS.map(
-        ({ id, category, prompt, options }) => ({
-          id,
-          category,
-          prompt,
-          options,
-        }),
-      ),
+      questions: INTERACTIVE_QUESTIONS.map(({ id, category, prompt, options }) => ({
+        id,
+        category,
+        prompt,
+        options,
+      })),
     };
   }
 
@@ -218,7 +204,9 @@ export class AssessmentService {
   ) {
     const assessment = await this.prisma.assessment.findUnique({
       where: { id: assessmentId },
-      include: { candidate: { select: { id: true, userId: true, targetRole: true, skills: true } } },
+      include: {
+        candidate: { select: { id: true, userId: true, targetRole: true, skills: true } },
+      },
     });
 
     if (!assessment || assessment.candidate.userId !== userId) {
@@ -233,11 +221,19 @@ export class AssessmentService {
       throw new BadRequestException('This assessment has already been submitted.');
     }
 
-    if (!Array.isArray(submittedAnswers) || submittedAnswers.length !== INTERACTIVE_QUESTIONS.length) {
-      throw new BadRequestException(`Submit answers to all ${INTERACTIVE_QUESTIONS.length} questions.`);
+    if (
+      !Array.isArray(submittedAnswers) ||
+      submittedAnswers.length !== INTERACTIVE_QUESTIONS.length
+    ) {
+      throw new BadRequestException(
+        `Submit answers to all ${INTERACTIVE_QUESTIONS.length} questions.`,
+      );
     }
 
-    const answers = submittedAnswers as Array<{ questionId?: unknown; answerIndex?: unknown }>;
+    const answers = submittedAnswers as Array<{
+      questionId?: unknown;
+      answerIndex?: unknown;
+    }>;
     const answerMap = new Map<string, number>();
 
     for (const answer of answers) {
@@ -247,17 +243,17 @@ export class AssessmentService {
         !Number.isInteger(answer.answerIndex) ||
         (answer.answerIndex as number) < 0
       ) {
-        throw new BadRequestException('Each answer must include a valid questionId and answerIndex.');
+        throw new BadRequestException(
+          'Each answer must include a valid questionId and answerIndex.',
+        );
       }
-
       if (answerMap.has(answer.questionId)) {
         throw new BadRequestException('Duplicate question answers are not allowed.');
       }
-
       answerMap.set(answer.questionId, answer.answerIndex as number);
     }
 
-    if (INTERACTIVE_QUESTIONS.some((question) => !answerMap.has(question.id))) {
+    if (INTERACTIVE_QUESTIONS.some((q) => !answerMap.has(q.id))) {
       throw new BadRequestException('One or more required questions are unanswered.');
     }
 
@@ -279,14 +275,15 @@ export class AssessmentService {
       };
     });
 
-    const correctCount = results.filter((item) => item.correct).length;
+    const correctCount = results.filter((r) => r.correct).length;
     const score = Math.round((correctCount / INTERACTIVE_QUESTIONS.length) * 100);
-    const classification =
-      score >= 80 ? 'PRO' : score >= 60 ? 'STARTER' : 'BEGINNER';
+    const classification = score >= 80 ? 'PRO' : score >= 60 ? 'STARTER' : 'BEGINNER';
 
-    const categoryResults = [...new Set(INTERACTIVE_QUESTIONS.map((q) => q.category))].map((category) => {
-      const group = results.filter((item) => item.category === category);
-      const correct = group.filter((item) => item.correct).length;
+    const categoryResults = [
+      ...new Set(INTERACTIVE_QUESTIONS.map((q) => q.category)),
+    ].map((category) => {
+      const group = results.filter((r) => r.category === category);
+      const correct = group.filter((r) => r.correct).length;
       return {
         category,
         correct,
@@ -296,26 +293,27 @@ export class AssessmentService {
     });
 
     const strengths = categoryResults
-      .filter((item) => item.percentage >= 80)
-      .map((item) => item.category);
+      .filter((r) => r.percentage >= 80)
+      .map((r) => r.category);
 
     const improvementAreas = categoryResults
-      .filter((item) => item.percentage < 80)
+      .filter((r) => r.percentage < 80)
       .sort((a, b) => a.percentage - b.percentage);
 
     const recommendations = improvementAreas.length
-      ? improvementAreas.map((item) =>
-          `Review ${item.category} fundamentals and complete a small hands-on exercise, then retake a practice quiz.`,
+      ? improvementAreas.map(
+          (r) =>
+            `Review ${r.category} fundamentals and complete a small hands-on exercise, then retake a practice quiz.`,
         )
       : [
           'Build and document a portfolio project that combines your skills.',
           'Practice explaining your technical decisions in a mock interview.',
-          'Try a more advanced, role-specific assessment to identify deeper learning goals.',
         ];
 
     const responses = {
       rubricVersion: 'interactive-fullstack-v1',
-      scoreMeaning: 'This score reflects performance on these multiple-choice questions only; it is not a validated measure of employability or placement likelihood.',
+      scoreMeaning:
+        'This score reflects performance on these multiple-choice questions only.',
       correctCount,
       totalQuestions: INTERACTIVE_QUESTIONS.length,
       categoryResults,
@@ -325,7 +323,7 @@ export class AssessmentService {
     } satisfies Prisma.InputJsonObject;
 
     const roadmap = {
-      summary: 'Use your question-level feedback to guide further study and practical work.',
+      summary: 'Use your question-level feedback to guide further study.',
       recommendations,
     } satisfies Prisma.InputJsonObject;
 
@@ -343,6 +341,9 @@ export class AssessmentService {
     });
   }
 
+  // ─────────────────────────────────────────────────────────────
+  // CAREER READINESS ASSESSMENT
+  // ─────────────────────────────────────────────────────────────
   async createCareerReadinessAssessment(userId: string) {
     const candidate = await this.prisma.candidate.findUnique({
       where: { userId },
@@ -351,6 +352,28 @@ export class AssessmentService {
     if (!candidate) {
       throw new NotFoundException(
         'Complete your candidate profile before starting an assessment.',
+      );
+    }
+
+    // ✅ Fix #9 — prevent duplicate CAREER_READINESS assessments
+    const existing = await this.prisma.assessment.findFirst({
+      where: {
+        candidateId: candidate.id,
+        type: AssessmentType.CAREER_READINESS,
+        status: 'COMPLETED',
+      },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true, createdAt: true },
+    });
+
+    // Allow re-assessment only if the last one is older than 24 hours
+    const REASSESSMENT_COOLDOWN_MS = 24 * 60 * 60 * 1000;
+    if (
+      existing &&
+      Date.now() - existing.createdAt.getTime() < REASSESSMENT_COOLDOWN_MS
+    ) {
+      throw new BadRequestException(
+        'A career readiness assessment was already completed recently. Please wait 24 hours before re-assessing.',
       );
     }
 
@@ -401,9 +424,7 @@ export class AssessmentService {
       select: { id: true, userId: true },
     });
 
-    if (!candidate) {
-      throw new NotFoundException('Candidate not found.');
-    }
+    if (!candidate) throw new NotFoundException('Candidate not found.');
 
     if (!isAdmin && candidate.userId !== userId) {
       throw new NotFoundException('Candidate not found.');
@@ -418,16 +439,10 @@ export class AssessmentService {
   async findOne(id: string, userId: string, isAdmin: boolean) {
     const assessment = await this.prisma.assessment.findUnique({
       where: { id },
-      include: {
-        candidate: {
-          select: { id: true, userId: true },
-        },
-      },
+      include: { candidate: { select: { id: true, userId: true } } },
     });
 
-    if (!assessment) {
-      throw new NotFoundException('Assessment not found.');
-    }
+    if (!assessment) throw new NotFoundException('Assessment not found.');
 
     if (!isAdmin && assessment.candidate.userId !== userId) {
       throw new NotFoundException('Assessment not found.');
@@ -436,20 +451,15 @@ export class AssessmentService {
     return assessment;
   }
 
-  async submitAssessment(
-    assessmentId: string,
-    _responses: Record<string, unknown>,
-  ) {
+  async submitAssessment(assessmentId: string, _responses: Record<string, unknown>) {
     const assessment = await this.prisma.assessment.findUnique({
       where: { id: assessmentId },
     });
 
-    if (!assessment) {
-      throw new NotFoundException('Assessment not found.');
-    }
+    if (!assessment) throw new NotFoundException('Assessment not found.');
 
     throw new BadRequestException(
-      'Profile-based career readiness assessments are calculated when created and cannot accept client-submitted scores or answers.',
+      'Profile-based assessments are calculated at creation and cannot accept client-submitted answers.',
     );
   }
 }

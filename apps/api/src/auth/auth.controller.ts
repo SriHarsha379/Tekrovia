@@ -5,10 +5,17 @@ import { Response } from 'express';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { SessionAuthGuard } from './guards/session-auth.guard';
 import { AuthService } from './auth.service';
+import { RegisterDto } from './dto/register.dto';
+import { LoginDto } from './dto/login.dto';
 
 interface AuthenticatedRequest {
   user: { id: string; email: string; name: string; role: string };
+  headers: { authorization?: string };
+  cookies?: { tekrovia_token?: string };
 }
+
+const COOKIE_NAME = 'tekrovia_token';
+const COOKIE_MAX_AGE = 7 * 24 * 60 * 60 * 1000;
 
 @ApiTags('auth')
 @Controller('auth')
@@ -17,13 +24,13 @@ export class AuthController {
 
   @Post('register')
   @ApiOperation({ summary: 'Register a new user' })
-  register(@Body() body: { email: string; phone: string; name: string; password?: string }) {
+  register(@Body() body: RegisterDto) {
     return this.authService.register(body);
   }
 
   @Post('login')
   @ApiOperation({ summary: 'Request OTP or validate password' })
-  login(@Body() body: { email: string; otp?: string; password?: string }) {
+  login(@Body() body: LoginDto) {
     return this.authService.login(body);
   }
 
@@ -35,13 +42,12 @@ export class AuthController {
   ) {
     const result = await this.authService.verifyOtp(body.email, body.otp);
 
-    // Set cookie server-side so it persists across refreshes
-    res.cookie('tekrovia_token', result.accessToken, {
-      httpOnly: false,   // false so JS can also read it
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+    res.cookie(COOKIE_NAME, result.accessToken, {
+      httpOnly: true,                                          // Fix 1: prevent JS access
+      secure: process.env.NODE_ENV === 'production',          // Fix 2: HTTPS only in prod
+      sameSite: 'strict',
+      maxAge: COOKIE_MAX_AGE,
       path: '/',
-      secure: false,     // false for localhost
     });
 
     return result;
@@ -51,13 +57,15 @@ export class AuthController {
   @ApiBearerAuth()
   @UseGuards(SessionAuthGuard)
   async logout(
-    @Req() request: AuthenticatedRequest & { headers: { authorization?: string } },
+    @Req() request: AuthenticatedRequest,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const token = request.headers.authorization?.replace('Bearer ', '') ?? '';
+    const token =
+      request.headers.authorization?.replace('Bearer ', '').trim() ??
+      request.cookies?.tekrovia_token ??
+      '';
 
-    // Clear the cookie server-side
-    res.clearCookie('tekrovia_token', { path: '/' });
+    res.clearCookie(COOKIE_NAME, { path: '/' });
 
     return this.authService.logout(token);
   }

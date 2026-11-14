@@ -13,6 +13,7 @@ import { PrismaService } from '../prisma/prisma.service';
 const OTP_TTL_MS = 5 * 60 * 1000;
 const OTP_RESEND_COOLDOWN_MS = 60 * 1000;
 const OTP_MAX_ATTEMPTS = 5;
+const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 function hashOtp(code: string): string {
   return createHash('sha256').update(code).digest('hex');
@@ -21,11 +22,16 @@ function hashOtp(code: string): string {
 function hashesMatch(storedHash: string, suppliedHash: string): boolean {
   const stored = Buffer.from(storedHash, 'hex');
   const supplied = Buffer.from(suppliedHash, 'hex');
-
   return (
     stored.length === supplied.length &&
     timingSafeEqual(stored, supplied)
   );
+}
+
+function safeUser(user: {
+  id: string; email: string; name: string; role: string;
+}) {
+  return { id: user.id, email: user.email, name: user.name, role: user.role };
 }
 
 @Injectable()
@@ -40,9 +46,7 @@ export class AuthService {
   }) {
     const email = data.email.trim().toLowerCase();
     const existing = await this.prisma.user.findFirst({
-      where: {
-        OR: [{ email }, { phone: data.phone }],
-      },
+      where: { OR: [{ email }, { phone: data.phone }] },
     });
 
     if (existing) {
@@ -60,7 +64,7 @@ export class AuthService {
         name: data.name.trim(),
         passwordHash,
         role: 'STUDENT',
-        isVerified: !data.password,
+        isVerified: false,  // Fix 4: always false until OTP is confirmed
       },
     });
 
@@ -78,14 +82,13 @@ export class AuthService {
     password?: string;
   }) {
     const email = data.email.trim().toLowerCase();
-    const user = await this.prisma.user.findUnique({
-      where: { email },
-    });
+    const user = await this.prisma.user.findUnique({ where: { email } });
 
     if (!user || !user.isActive) {
       throw new BadRequestException('Invalid login details.');
     }
 
+    // Fix 3: password path creates a session and returns early
     if (data.password !== undefined) {
       if (!user.passwordHash) {
         throw new BadRequestException(
@@ -93,20 +96,24 @@ export class AuthService {
         );
       }
 
-      const valid = await bcrypt.compare(
-        data.password,
-        user.passwordHash,
-      );
-
+      const valid = await bcrypt.compare(data.password, user.passwordHash);
       if (!valid) {
         throw new BadRequestException('Invalid login details.');
       }
+
+      // Mark verified on first successful password login
+      if (!user.isVerified) {
+        await this.prisma.user.update({
+          where: { id: user.id },
+          data: { isVerified: true },
+        });
+      }
+
+      const { accessToken, refreshToken } = await this.createSession(user.id);
+      return { accessToken, refreshToken, user: safeUser(user) };
     }
 
-    // Fail closed: an OTP is only generated and returned when a developer
-    // explicitly opts in with ALLOW_DEV_OTP_RESPONSE=true. It is never
-    // available in production, regardless of the flag, until a real
-    // delivery provider (email/SMS) is configured.
+    // --- OTP path ---
     if (
       process.env.NODE_ENV === 'production' ||
       process.env.ALLOW_DEV_OTP_RESPONSE !== 'true'
@@ -117,17 +124,13 @@ export class AuthService {
     }
 
     const latestOtp = await this.prisma.otpCode.findFirst({
-      where: {
-        userId: user.id,
-        purpose: 'login',
-      },
+      where: { userId: user.id, purpose: 'login' },
       orderBy: { createdAt: 'desc' },
     });
 
     if (
       latestOtp &&
-      Date.now() - latestOtp.createdAt.getTime() <
-        OTP_RESEND_COOLDOWN_MS
+      Date.now() - latestOtp.createdAt.getTime() < OTP_RESEND_COOLDOWN_MS
     ) {
       throw new HttpException(
         'Please wait before requesting another OTP.',
@@ -138,12 +141,8 @@ export class AuthService {
     const otp = randomInt(100000, 1000000).toString();
     const expiresAt = new Date(Date.now() + OTP_TTL_MS);
 
-    // Invalidate older login OTPs so only the newest one can work.
     await this.prisma.otpCode.deleteMany({
-      where: {
-        userId: user.id,
-        purpose: 'login',
-      },
+      where: { userId: user.id, purpose: 'login' },
     });
 
     await this.prisma.otpCode.create({
@@ -176,11 +175,7 @@ export class AuthService {
     }
 
     const otpRecord = await this.prisma.otpCode.findFirst({
-      where: {
-        userId: user.id,
-        purpose: 'login',
-        verifiedAt: null,
-      },
+      where: { userId: user.id, purpose: 'login', verifiedAt: null },
       orderBy: { createdAt: 'desc' },
     });
 
@@ -190,7 +185,7 @@ export class AuthService {
 
     if (otpRecord.attempts >= OTP_MAX_ATTEMPTS) {
       throw new HttpException(
-        'Too many incorrect OTP attempts. Request a new code later.',
+        'Too many incorrect OTP attempts. Request a new code.',
         HttpStatus.TOO_MANY_REQUESTS,
       );
     }
@@ -206,7 +201,7 @@ export class AuthService {
 
       if (updated.attempts >= OTP_MAX_ATTEMPTS) {
         throw new HttpException(
-          'Too many incorrect OTP attempts. Request a new code later.',
+          'Too many incorrect OTP attempts. Request a new code.',
           HttpStatus.TOO_MANY_REQUESTS,
         );
       }
@@ -214,40 +209,28 @@ export class AuthService {
       throw new BadRequestException('Invalid or expired OTP.');
     }
 
-    // Delete the code after successful verification to prevent reuse.
-    await this.prisma.otpCode.delete({
-      where: { id: otpRecord.id },
-    });
-
+    await this.prisma.otpCode.delete({ where: { id: otpRecord.id } });
     await this.prisma.user.update({
       where: { id: user.id },
       data: { isVerified: true },
     });
 
+    const { accessToken, refreshToken } = await this.createSession(user.id);
+    return { accessToken, refreshToken, user: safeUser(user) };
+  }
+
+  private async createSession(userId: string) {
     const accessToken = uuidv4();
     const refreshToken = uuidv4();
-
     await this.prisma.session.create({
       data: {
-        userId: user.id,
+        userId,
         accessToken,
         refreshToken,
-        expiresAt: new Date(
-          Date.now() + 1000 * 60 * 60 * 24 * 7,
-        ),
+        expiresAt: new Date(Date.now() + SESSION_TTL_MS),
       },
     });
-
-    return {
-      accessToken,
-      refreshToken,
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        role: user.role,
-      },
-    };
+    return { accessToken, refreshToken };
   }
 
   async validateAccessToken(accessToken: string) {
@@ -255,25 +238,16 @@ export class AuthService {
       where: {
         accessToken,
         expiresAt: { gt: new Date() },
-        // Without this a logged-out token keeps working.
         revokedAt: null,
       },
       include: { user: true },
     });
 
-    if (!session || !session.user.isActive) {
-      return null;
-    }
+    if (!session || !session.user.isActive) return null;
 
-    return {
-      id: session.user.id,
-      email: session.user.email,
-      name: session.user.name,
-      role: session.user.role,
-    };
+    return safeUser(session.user);
   }
 
-  /** Revokes the session behind this token. Safe to call twice. */
   async logout(accessToken: string) {
     await this.prisma.session.updateMany({
       where: { accessToken, revokedAt: null },

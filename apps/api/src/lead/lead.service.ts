@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { randomInt } from 'crypto';
+import { LeadStatus } from '@prisma/client';          // Fix C: import enum
 import { PrismaService } from '../prisma/prisma.service';
 
 const LEAD_CODE_ATTEMPTS = 5;
@@ -14,6 +15,11 @@ function isUniqueViolation(error: unknown): boolean {
     error !== null &&
     (error as { code?: unknown }).code === 'P2002'
   );
+}
+
+function getUniqueFields(error: unknown): string[] {
+  const meta = (error as { meta?: { target?: string[] } }).meta;
+  return meta?.target ?? [];
 }
 
 @Injectable()
@@ -33,17 +39,6 @@ export class LeadService {
     utmTerm?: string;
     consentGiven?: boolean;
   }) {
-    const existing = await this.prisma.lead.findFirst({
-      where: {
-        OR: [{ email: data.email }, { phone: data.phone }],
-      },
-    });
-
-    if (existing) {
-      return existing;
-    }
-
-    // Lead codes are random, so retry on the rare unique-constraint collision.
     for (let attempt = 1; attempt <= LEAD_CODE_ATTEMPTS; attempt += 1) {
       try {
         return await this.prisma.lead.create({
@@ -60,17 +55,23 @@ export class LeadService {
             utmContent: data.utmContent,
             utmTerm: data.utmTerm,
             consentGiven: data.consentGiven ?? false,
-            status: 'NEW',
+            status: LeadStatus.NEW,                   // Fix C: use enum
           },
         });
       } catch (error) {
-        if (!isUniqueViolation(error) || attempt === LEAD_CODE_ATTEMPTS) {
-          throw error;
+        if (!isUniqueViolation(error)) throw error;
+
+        const fields = getUniqueFields(error);
+
+        // Duplicate email or phone — lead already exists; swallow silently.
+        if (fields.includes('email') || fields.includes('phone')) return;
+
+        // Duplicate leadCode — retry with a fresh code.
+        if (attempt === LEAD_CODE_ATTEMPTS) {
+          throw error;  // rethrow original after exhausting retries
         }
       }
     }
-
-    throw new Error('Unable to generate a unique lead code.');
   }
 
   async convertLeadToCandidate(leadId: string, candidateId: string) {
@@ -84,10 +85,10 @@ export class LeadService {
       where: { id: leadId },
       data: {
         candidateId,
-        status: 'ENROLLED',
+        status: LeadStatus.CONVERTED,                  // Fix C: use enum
       },
     });
 
-    return { leadId, candidateId, status: 'ENROLLED' };
+    return { leadId, candidateId, status: LeadStatus.CONVERTED };
   }
 }

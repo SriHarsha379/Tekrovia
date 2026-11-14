@@ -1,5 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, RequestTimeoutException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+
+const AI_TIMEOUT_MS = 30_000;
 
 @Injectable()
 export class AiService {
@@ -20,17 +22,32 @@ export class AiService {
   }
 
   private async post<T>(path: string, body: unknown): Promise<T> {
-    const res = await fetch(`${this.baseUrl}${path}`, {
-      method: 'POST',
-      headers: this.headers(),
-      body: JSON.stringify(body),
-    });
-    if (!res.ok) {
-      const text = await res.text();
-      this.logger.error(`AI service error ${res.status}: ${text}`);
-      throw new Error(`AI service returned ${res.status}`);
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
+
+    try {
+      const res = await fetch(`${this.baseUrl}${path}`, {
+        method: 'POST',
+        headers: this.headers(),
+        body: JSON.stringify(body),
+        signal: controller.signal,
+      });
+
+      if (!res.ok) {
+        const text = await res.text();
+        this.logger.error(`AI service error ${res.status}: ${text}`);
+        throw new Error(`AI service returned ${res.status}`);
+      }
+
+      return res.json() as Promise<T>;
+    } catch (error: unknown) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new RequestTimeoutException('AI service did not respond in time.');
+      }
+      throw error;
+    } finally {
+      clearTimeout(timer);
     }
-    return res.json() as Promise<T>;
   }
 
   async generateRoadmap(data: {

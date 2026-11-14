@@ -12,6 +12,7 @@ describe('AssessmentService', () => {
       findUnique: jest.fn(),
     },
     assessment: {
+      findFirst: jest.fn(),
       create: jest.fn(),
       findUnique: jest.fn(),
       findMany: jest.fn(),
@@ -73,7 +74,7 @@ describe('AssessmentService', () => {
       });
       expect(createArg.data.responses.factors).toHaveLength(5);
       expect(createArg.data.roadmap.nextSteps).toContain(
-        'If useful, discuss your career-gap context with a counsellor and plan a manageable return-to-learning path.',
+        'Discuss your career gap with a counsellor and plan a return-to-learning path.',
       );
       expect(result).toEqual(saved);
     });

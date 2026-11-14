@@ -1,212 +1,91 @@
 import {
-  Body,
-  Controller,
-  ForbiddenException,
-  Get,
-  Param,
-  Patch,
-  Post,
-  Query,
-  Req,
-  UseGuards,
+  Body, Controller, ForbiddenException, Get,
+  HttpCode, HttpStatus, Param, Patch, Post, Query, Req, UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { SessionAuthGuard } from '../auth/guards/session-auth.guard';
 import { PlacementService } from './placement.service';
+import {
+  CreateJobPostingDto,
+  CreatePlacementDto,
+  LogInterviewRoundDto,
+  UpdateStageDto,
+} from './dto/placement.dto';
 
-interface AuthenticatedRequest {
-  user: { id: string; email: string; name: string; role: string };
-}
+interface AuthReq { user: { id: string; role: string } }
 
-@ApiTags('placements')
+const ADMIN = ['ADMIN', 'SUPER_ADMIN', 'PLACEMENT'];
+
+@ApiTags('placement')
 @ApiBearerAuth()
 @UseGuards(SessionAuthGuard)
-@Controller('placements')
+@Controller('placement')
 export class PlacementController {
-  constructor(private readonly placementService: PlacementService) {}
+  constructor(private readonly svc: PlacementService) {}
 
-  private assertPlacementAccess(request: AuthenticatedRequest): void {
-    if (!['ADMIN', 'SUPER_ADMIN', 'PLACEMENT_MANAGER'].includes(request.user.role)) {
-      throw new ForbiddenException('Placement management access required.');
-    }
+  // ── Job Postings ──────────────────────────────────────────────────────────
+  @Post('jobs')
+  @ApiOperation({ summary: 'Create job posting — placement team only' })
+  createJob(@Req() req: AuthReq, @Body() dto: CreateJobPostingDto) {
+    if (!ADMIN.includes(req.user.role)) throw new ForbiddenException();
+    return this.svc.createJobPosting(req.user.id, dto);
   }
 
-  @Get('overview')
-  @ApiOperation({ summary: 'Get placement pipeline metrics and upcoming interviews' })
-  overview(
-    @Req() request: AuthenticatedRequest,
-    @Query('range') range?: string,
-  ) {
-    this.assertPlacementAccess(request);
-    return this.placementService.overview(range);
+  @Get('jobs')
+  @ApiOperation({ summary: 'List job postings' })
+  listJobs(@Query('page') page?: string) {
+    return this.svc.listJobPostings(page ? parseInt(page, 10) : 1);
   }
 
-  @Get('applications')
-  @ApiOperation({ summary: 'Search and filter placement applications' })
-  listApplications(
-    @Req() request: AuthenticatedRequest,
-    @Query('search') search?: string,
-    @Query('status') status?: string,
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
-  ) {
-    this.assertPlacementAccess(request);
-    return this.placementService.listApplications({ search, status, page, limit });
+  // ── Candidate pipeline ────────────────────────────────────────────────────
+  @Get('me')
+  @ApiOperation({ summary: 'Get authenticated candidate placement pipeline' })
+  myPipeline(@Req() req: AuthReq) {
+    return this.svc.getPipelineForCandidate(req.user.id);
   }
 
-  @Get('applications/:id')
-  @ApiOperation({ summary: 'Get a placement application with interviews and offer' })
-  getApplication(
-    @Req() request: AuthenticatedRequest,
-    @Param('id') id: string,
-  ) {
-    this.assertPlacementAccess(request);
-    return this.placementService.getApplication(id);
+  // ── Admin pipeline ────────────────────────────────────────────────────────
+  @Get('dashboard')
+  @ApiOperation({ summary: 'Pipeline stage counts — admin only' })
+  dashboard(@Req() req: AuthReq) {
+    if (!ADMIN.includes(req.user.role)) throw new ForbiddenException();
+    return this.svc.getPipelineDashboard();
   }
 
-  @Post('applications')
-  @ApiOperation({ summary: 'Create a placement application' })
-  createApplication(
-    @Req() request: AuthenticatedRequest,
-    @Body() body: Record<string, unknown>,
-  ) {
-    this.assertPlacementAccess(request);
-    return this.placementService.createApplication(body, request.user.id);
-  }
-
-  @Patch('applications/:id')
-  @ApiOperation({ summary: 'Update a placement application' })
-  updateApplication(
-    @Req() request: AuthenticatedRequest,
-    @Param('id') id: string,
-    @Body() body: Record<string, unknown>,
-  ) {
-    this.assertPlacementAccess(request);
-    return this.placementService.updateApplication(id, body);
-  }
-
-  @Post('applications/:id/interviews')
-  @ApiOperation({ summary: 'Schedule an interview for an application' })
-  createInterview(
-    @Req() request: AuthenticatedRequest,
-    @Param('id') id: string,
-    @Body() body: Record<string, unknown>,
-  ) {
-    this.assertPlacementAccess(request);
-    return this.placementService.createInterview(id, body);
-  }
-
-  @Patch('interviews/:id')
-  @ApiOperation({ summary: 'Update interview schedule, status, outcome, or feedback' })
-  updateInterview(
-    @Req() request: AuthenticatedRequest,
-    @Param('id') id: string,
-    @Body() body: Record<string, unknown>,
-  ) {
-    this.assertPlacementAccess(request);
-    return this.placementService.updateInterview(id, body);
-  }
-
-  @Post('applications/:id/offer')
-  @ApiOperation({ summary: 'Create an offer for an application' })
-  createOffer(
-    @Req() request: AuthenticatedRequest,
-    @Param('id') id: string,
-    @Body() body: Record<string, unknown>,
-  ) {
-    this.assertPlacementAccess(request);
-    return this.placementService.createOffer(id, body);
-  }
-
-  @Patch('offers/:id')
-  @ApiOperation({ summary: 'Update offer status and details' })
-  updateOffer(
-    @Req() request: AuthenticatedRequest,
-    @Param('id') id: string,
-    @Body() body: Record<string, unknown>,
-  ) {
-    this.assertPlacementAccess(request);
-    return this.placementService.updateOffer(id, body);
-  }
-
-
-  @Patch('applications/:id/pipeline')
-  @ApiOperation({ summary: 'Update application pipeline stage and record its history' })
-  updateApplicationPipeline(
-    @Req() request: AuthenticatedRequest,
-    @Param('id') id: string,
-    @Body() body: Record<string, unknown>,
-  ) {
-    this.assertPlacementAccess(request);
-    return this.placementService.updateApplicationPipeline(
-      id,
-      body,
-      request.user.id,
-    );
-  }
-
-  @Get('readiness')
-  @ApiOperation({ summary: 'List candidates and their placement-readiness evidence' })
-  getReadinessCandidates(@Req() request: AuthenticatedRequest) {
-    this.assertPlacementAccess(request);
-    return this.placementService.getReadinessCandidates();
-  }
-
-  @Get('readiness/:candidateId')
-  @ApiOperation({ summary: 'Get one candidate placement-readiness checklist' })
-  getCandidateReadiness(
-    @Req() request: AuthenticatedRequest,
+  @Post('candidates/:candidateId/submit')
+  @ApiOperation({ summary: 'Create placement submission for candidate' })
+  createSubmission(
+    @Req() req: AuthReq,
     @Param('candidateId') candidateId: string,
+    @Body() dto: CreatePlacementDto,
   ) {
-    this.assertPlacementAccess(request);
-    return this.placementService.getCandidateReadiness(candidateId);
+    if (!ADMIN.includes(req.user.role)) throw new ForbiddenException();
+    return this.svc.createSubmission(candidateId, dto);
   }
 
-  @Patch('readiness/:candidateId/review')
-  @ApiOperation({ summary: 'Record a human placement-readiness decision' })
-  reviewCandidateReadiness(
-    @Req() request: AuthenticatedRequest,
-    @Param('candidateId') candidateId: string,
-    @Body() body: Record<string, unknown>,
-  ) {
-    this.assertPlacementAccess(request);
-    return this.placementService.reviewCandidateReadiness(
-      candidateId,
-      body,
-      request.user.id,
-    );
+  @Post('candidates/:candidateId/readiness')
+  @ApiOperation({ summary: 'Evaluate readiness gate for candidate' })
+  evaluateGate(@Req() req: AuthReq, @Param('candidateId') candidateId: string) {
+    if (!ADMIN.includes(req.user.role)) throw new ForbiddenException();
+    return this.svc.evaluateReadinessGate(candidateId);
   }
 
-
-  @Get('candidates/:candidateId/mocks')
-  @ApiOperation({ summary: 'List expert mock interviews for a candidate' })
-  listCandidateMocks(
-    @Req() request: AuthenticatedRequest,
-    @Param('candidateId') candidateId: string,
-  ) {
-    this.assertPlacementAccess(request);
-    return this.placementService.listCandidateMocks(candidateId);
+  @Patch('submissions/:id/stage')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Update placement pipeline stage' })
+  updateStage(@Req() req: AuthReq, @Param('id') id: string, @Body() dto: UpdateStageDto) {
+    if (!ADMIN.includes(req.user.role)) throw new ForbiddenException();
+    return this.svc.updateStage(id, dto);
   }
 
-  @Post('candidates/:candidateId/mocks')
-  @ApiOperation({ summary: 'Schedule an expert mock interview for a candidate' })
-  scheduleMockInterview(
-    @Req() request: AuthenticatedRequest,
-    @Param('candidateId') candidateId: string,
-    @Body() body: Record<string, unknown>,
-  ) {
-    this.assertPlacementAccess(request);
-    return this.placementService.scheduleMockInterview(candidateId, body);
-  }
-
-  @Patch('mocks/:id')
-  @ApiOperation({ summary: 'Record the outcome and score of a mock interview' })
-  recordMockInterviewOutcome(
-    @Req() request: AuthenticatedRequest,
+  @Post('submissions/:id/rounds')
+  @ApiOperation({ summary: 'Log interview round outcome' })
+  logRound(
+    @Req() req: AuthReq,
     @Param('id') id: string,
-    @Body() body: Record<string, unknown>,
+    @Body() dto: LogInterviewRoundDto,
   ) {
-    this.assertPlacementAccess(request);
-    return this.placementService.recordMockInterviewOutcome(id, body);
+    if (!ADMIN.includes(req.user.role)) throw new ForbiddenException();
+    return this.svc.logInterviewRound(id, dto);
   }
 }

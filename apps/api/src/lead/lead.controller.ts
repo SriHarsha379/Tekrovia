@@ -7,18 +7,14 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { SessionAuthGuard } from '../auth/guards/session-auth.guard';
 import { CreateLeadDto } from './dto/create-lead.dto';
 import { LeadService } from './lead.service';
 
 interface AuthenticatedRequest {
-  user: {
-    id: string;
-    email: string;
-    name: string;
-    role: string;
-  };
+  user: { id: string; email: string; name: string; role: string };
 }
 
 @ApiTags('lead')
@@ -32,11 +28,11 @@ export class LeadController {
     }
   }
 
+  // Fix 6: 10 lead submissions per IP per minute for the public endpoint
   @Post()
-  @ApiOperation({ summary: 'Capture a new CRM lead (public; returns only an acknowledgement)' })
+  @Throttle({ default: { ttl: 60_000, limit: 10 } })
+  @ApiOperation({ summary: 'Capture a new CRM lead (public)' })
   async create(@Body() body: CreateLeadDto) {
-    // Never return the stored record: this endpoint is public, and an existing
-    // lead must not be readable by anyone who knows an email or phone number.
     await this.leadService.createLead(body);
     return { received: true };
   }

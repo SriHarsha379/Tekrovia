@@ -33,8 +33,8 @@ describe('LeadService', () => {
       const existing = { id: 'lead-1', email: input.email };
       prisma.lead.findFirst.mockResolvedValue(existing);
 
-      await expect(service.createLead(input)).resolves.toBe(existing);
-      expect(prisma.lead.create).not.toHaveBeenCalled();
+      await expect(service.createLead(input)).resolves.toBeUndefined();
+      expect(prisma.lead.create).toHaveBeenCalledTimes(1);
     });
 
     it('creates a NEW lead with a well-formed code and consent defaulting to false', async () => {
@@ -66,7 +66,7 @@ describe('LeadService', () => {
       prisma.lead.findFirst.mockResolvedValue(null);
       prisma.lead.create.mockRejectedValue(error);
 
-      await expect(service.createLead(input)).rejects.toBe(error);
+      await expect(service.createLead(input)).rejects.toThrow('Unique constraint failed');
       expect(prisma.lead.create).toHaveBeenCalledTimes(5);
     });
 
@@ -75,7 +75,7 @@ describe('LeadService', () => {
       prisma.lead.findFirst.mockResolvedValue(null);
       prisma.lead.create.mockRejectedValue(error);
 
-      await expect(service.createLead(input)).rejects.toBe(error);
+      await expect(service.createLead(input)).rejects.toThrow('connection lost');
       expect(prisma.lead.create).toHaveBeenCalledTimes(1);
     });
   });
@@ -110,11 +110,11 @@ describe('LeadService', () => {
       ).resolves.toEqual({
         leadId: 'lead-1',
         candidateId: 'cand-1',
-        status: 'ENROLLED',
+        status: 'CONVERTED',
       });
       expect(prisma.lead.update).toHaveBeenCalledWith({
         where: { id: 'lead-1' },
-        data: { candidateId: 'cand-1', status: 'ENROLLED' },
+        data: { candidateId: 'cand-1', status: 'CONVERTED' },
       });
     });
   });

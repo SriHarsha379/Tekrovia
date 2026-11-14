@@ -1,15 +1,6 @@
 import {
-  IsArray,
-  IsBoolean,
-  IsEmail,
-  IsInt,
-  IsOptional,
-  IsString,
-  Matches,
-  Max,
-  MaxLength,
-  Min,
-  MinLength,
+  IsArray, IsBoolean, IsEmail, IsInt, IsOptional,
+  IsString, Matches, Max, MaxLength, Min, MinLength,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -17,6 +8,7 @@ export class CreateCandidateDto {
   @ApiProperty()
   @IsString()
   @MinLength(2)
+  @MaxLength(100)
   fullName!: string;
 
   @ApiProperty()
@@ -25,6 +17,7 @@ export class CreateCandidateDto {
 
   @ApiProperty()
   @IsString()
+  @Matches(/^\+?[1-9]\d{7,14}$/, { message: 'phone must be a valid E.164 number' })
   phone!: string;
 
   @ApiProperty({ required: false })
@@ -35,11 +28,15 @@ export class CreateCandidateDto {
   @ApiProperty({ required: false })
   @IsOptional()
   @IsInt()
+  @Min(1950)
+  @Max(2100)
   graduationYear?: number;
 
   @ApiProperty({ required: false })
   @IsOptional()
   @IsInt()
+  @Min(0)
+  @Max(50)
   experienceYears?: number;
 
   @ApiProperty({ required: false, type: [String] })
@@ -98,6 +95,7 @@ export class CreateCandidateDto {
   @ApiProperty({ required: false })
   @IsOptional()
   @IsString()
+  @MaxLength(200)
   campaignSource?: string;
 
   @ApiProperty({ required: false })
