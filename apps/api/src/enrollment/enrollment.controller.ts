@@ -1,10 +1,11 @@
 import {
   Body, Controller, ForbiddenException, Get,
-  HttpCode, HttpStatus, Param, Patch, Req, UseGuards,
+  HttpCode, HttpStatus, NotFoundException, Param, Patch, Req, UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { SessionAuthGuard } from '../auth/guards/session-auth.guard';
 import { EnrollmentService } from './enrollment.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { AssignBatchDto, UpdateEnrollmentDto } from './dto/enrollment.dto';
 
 interface AuthReq { user: { id: string; role: string } }
@@ -16,12 +17,24 @@ const ADMIN = ['ADMIN', 'SUPER_ADMIN', 'TRAINER'];
 @UseGuards(SessionAuthGuard)
 @Controller('enrollments')
 export class EnrollmentController {
-  constructor(private readonly svc: EnrollmentService) {}
+  constructor(
+    private readonly svc: EnrollmentService,
+    private readonly prisma: PrismaService,
+  ) {}
+
+  private async candidateId(userId: string): Promise<string> {
+    const candidate = await this.prisma.candidate.findUnique({
+      where: { userId },
+      select: { id: true },
+    });
+    if (!candidate) throw new NotFoundException('Complete your candidate profile first.');
+    return candidate.id;
+  }
 
   @Get('me')
   @ApiOperation({ summary: 'Get my enrollments' })
-  mine(@Req() req: AuthReq) {
-    return this.svc.getMyEnrollments(req.user.id);
+  async mine(@Req() req: AuthReq) {
+    return this.svc.getMyEnrollments(await this.candidateId(req.user.id));
   }
 
   @Patch(':id/batch')

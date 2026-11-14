@@ -4,7 +4,7 @@ import {
   Logger,
   NotFoundException,
 } from '@nestjs/common';
-import { createHmac } from 'crypto';
+import { createHmac, timingSafeEqual } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateOrderDto, VerifyPaymentDto } from './dto/create-order.dto';
 
@@ -16,6 +16,9 @@ export class PaymentService {
 
   // ─── Create Razorpay order ────────────────────────────────────────────────
   async createOrder(candidateId: string, dto: CreateOrderDto) {
+    if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+      throw new BadRequestException('Payment provider is not configured.');
+    }
     const candidate = await this.prisma.candidate.findUnique({
       where: { id: candidateId },
       select: { id: true, email: true, fullName: true },
@@ -94,10 +97,12 @@ export class PaymentService {
     const body = `${dto.razorpayOrderId}|${dto.razorpayPaymentId}`;
     const expected = createHmac('sha256', secret).update(body).digest('hex');
 
-    // Constant-time compare
+    // Constant-time compare using raw bytes, not hex strings
+    const expectedBuf  = Buffer.from(expected, 'hex');
+    const receivedBuf  = Buffer.from(dto.razorpaySignature, 'hex');
     const isValid =
-      expected.length === dto.razorpaySignature.length &&
-      Buffer.from(expected).equals(Buffer.from(dto.razorpaySignature));
+      expectedBuf.length === receivedBuf.length &&
+      timingSafeEqual(expectedBuf, receivedBuf);
 
     if (!isValid) {
       this.logger.warn(`Invalid Razorpay signature for order ${dto.razorpayOrderId}`);

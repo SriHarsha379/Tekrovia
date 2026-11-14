@@ -5,7 +5,7 @@ import {
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { SessionAuthGuard } from '../auth/guards/session-auth.guard';
 import { LmsService } from './lms.service';
-import { UpdateActivityDto, SubmitAssignmentDto, SubmitProjectDto } from './dto/lms.dto';
+import { UpdateActivityDto, SubmitAssignmentDto, SubmitProjectDto, ReviewProjectDto } from './dto/lms.dto';
 
 interface AuthReq { user: { id: string; role: string } }
 
@@ -78,7 +78,7 @@ export class LmsController {
   reviewProject(
     @Req() req: AuthReq,
     @Param('submissionId') submissionId: string,
-    @Body() body: { status: 'MENTOR_APPROVED' | 'REJECTED'; feedback: string },
+    @Body() body: ReviewProjectDto,
   ) {
     if (!['ADMIN', 'SUPER_ADMIN', 'TRAINER', 'MENTOR'].includes(req.user.role)) {
       throw new ForbiddenException('Trainer access required.');

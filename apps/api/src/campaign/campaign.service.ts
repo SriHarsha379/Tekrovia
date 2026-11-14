@@ -8,7 +8,7 @@ export class CampaignService {
   constructor(private readonly prisma: PrismaService) {}
 
   async create(dto: CreateCampaignDto) {
-    return this.prisma.campaign.create({ data: dto as any });
+    return this.prisma.campaign.create({ data: dto });
   }
 
   async findAll(page = 1) {
@@ -42,7 +42,7 @@ export class CampaignService {
 
     const leads = await this.prisma.lead.count({ where: { campaignId } });
     const converted = await this.prisma.lead.count({
-      where: { campaignId, status: LeadStatus.CONVERTED },
+      where: { campaignId, status: LeadStatus.ENROLLED },
     });
 
     return {
@@ -64,6 +64,13 @@ export class CampaignService {
     candidateId?: string;
     metadata?: Record<string, unknown>;
   }) {
-    return this.prisma.funnelEvent.create({ data: data as any });
+    return this.prisma.funnelEvent.create({
+      data: {
+        eventType: data.eventType,
+        campaignId: data.campaignId,
+        leadId: data.leadId,
+        metadata: data.metadata ?? null,
+      },
+    });
   }
 }

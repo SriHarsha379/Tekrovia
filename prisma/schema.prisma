@@ -212,36 +212,36 @@ enum RecoveryStatus {
 
 /// Platform users — both candidates (STUDENT) and staff (TRAINER/ADMIN/etc.)
 model User {
-  id           String    @id @default(uuid())
-  email        String    @unique
-  phone        String?   @unique
-  name         String
-  passwordHash String?   @map("password_hash")
-  role         UserRole  @default(STUDENT)
-  isVerified   Boolean   @default(false) @map("is_verified")
-  isActive     Boolean   @default(true)  @map("is_active")
-  failedAttempts Int     @default(0)     @map("failed_attempts")
-  lockedUntil  DateTime?                 @map("locked_until")
-  lastLoginAt  DateTime?                 @map("last_login_at")
-  createdAt    DateTime  @default(now()) @map("created_at")
-  updatedAt    DateTime  @updatedAt      @map("updated_at")
+  id             String    @id @default(uuid())
+  email          String    @unique
+  phone          String?   @unique
+  name           String
+  passwordHash   String?   @map("password_hash")
+  role           UserRole  @default(STUDENT)
+  isVerified     Boolean   @default(false) @map("is_verified")
+  isActive       Boolean   @default(true) @map("is_active")
+  failedAttempts Int       @default(0) @map("failed_attempts")
+  lockedUntil    DateTime? @map("locked_until")
+  lastLoginAt    DateTime? @map("last_login_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
 
   // Relations
-  candidate        Candidate?
-  sessions         Session[]
-  otpCodes         OtpCode[]
-  auditLogs        AuditLog[]
+  candidate       Candidate?
+  sessions        Session[]
+  otpCodes        OtpCode[]
+  auditLogs       AuditLog[]
   // Staff-side relations
-  trainedBatches   Batch[]             @relation("BatchTrainer")
-  enrollmentOwner  Enrollment[]        @relation("EnrollmentSupportOwner")
-  mockInterviews   MockInterview[]     @relation("MockInterviewer")
-  resumeReviews    Resume[]            @relation("ResumeReviewer")
-  supportTickets   SupportTicket[]     @relation("TicketAssignee")
-  ticketComments   TicketComment[]     @relation("StaffComments")
-  jobPostings      JobPosting[]
-  assessments      Assessment[]        @relation("AssessmentCreatedBy")
-  mentoredSubs     ProjectSubmission[] @relation("ProjectMentor")
-  priceList        PriceList[]
+  trainedBatches  Batch[]             @relation("BatchTrainer")
+  enrollmentOwner Enrollment[]        @relation("EnrollmentSupportOwner")
+  mockInterviews  MockInterview[]     @relation("MockInterviewer")
+  resumeReviews   Resume[]            @relation("ResumeReviewer")
+  supportTickets  SupportTicket[]     @relation("TicketAssignee")
+  ticketComments  TicketComment[]     @relation("StaffComments")
+  jobPostings     JobPosting[]
+  assessments     Assessment[]        @relation("AssessmentCreatedBy")
+  mentoredSubs    ProjectSubmission[] @relation("ProjectMentor")
+  priceList       PriceList[]
 
   @@map("users")
 }
@@ -266,7 +266,7 @@ model OtpCode {
   id         String    @id @default(uuid())
   userId     String    @map("user_id")
   purpose    String    @default("login")
-  code       String                        // bcrypt hash — never plain text
+  code       String // bcrypt hash — never plain text
   expiresAt  DateTime  @map("expires_at")
   attempts   Int       @default(0)
   verifiedAt DateTime? @map("verified_at")
@@ -279,15 +279,15 @@ model OtpCode {
 }
 
 model AuditLog {
-  id         String   @id @default(uuid())
-  userId     String?  @map("user_id")
-  action     String
-  entity     String
-  entityId   String?  @map("entity_id")
-  meta       Json?
-  ipAddress  String?  @map("ip_address")
-  userAgent  String?  @map("user_agent")
-  createdAt  DateTime @default(now()) @map("created_at")
+  id        String   @id @default(uuid())
+  userId    String?  @map("user_id")
+  action    String
+  entity    String
+  entityId  String?  @map("entity_id")
+  meta      Json?
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+  createdAt DateTime @default(now()) @map("created_at")
 
   user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
 
@@ -312,9 +312,9 @@ model Campaign {
   utmTerm        String?     @map("utm_term")
   budget         Decimal?    @db.Decimal(12, 2)
   startDate      DateTime?   @map("start_date") @db.Date
-  endDate        DateTime?   @map("end_date")   @db.Date
-  createdAt      DateTime    @default(now())    @map("created_at")
-  updatedAt      DateTime    @updatedAt         @map("updated_at")
+  endDate        DateTime?   @map("end_date") @db.Date
+  createdAt      DateTime    @default(now()) @map("created_at")
+  updatedAt      DateTime    @updatedAt @map("updated_at")
 
   leads         Lead[]
   registrations Registration[]
@@ -324,30 +324,30 @@ model Campaign {
 }
 
 model Lead {
-  id              String     @id @default(uuid())
-  leadCode        String     @unique @map("lead_code")
-  campaignId      String?    @map("campaign_id")
-  name            String
+  id             String     @id @default(uuid())
+  leadCode       String     @unique @map("lead_code")
+  campaignId     String?    @map("campaign_id")
+  name           String
   // At least one of email/phone must be set — enforced at app layer + DB check
-  email           String?
-  phone           String?
-  landingPageUrl  String?    @map("landing_page_url")
-  status          LeadStatus @default(NEW)
-  courseInterest  String?    @map("course_interest")
-  source          String?
-  utmSource       String?    @map("utm_source")
-  utmMedium       String?    @map("utm_medium")
-  utmCampaign     String?    @map("utm_campaign")
-  utmContent      String?    @map("utm_content")
-  utmTerm         String?    @map("utm_term")
-  consentGiven    Boolean    @default(false) @map("consent_given")
-  metadata        Json?
-  candidateId     String?    @map("candidate_id")
-  createdAt       DateTime   @default(now()) @map("created_at")
-  updatedAt       DateTime   @updatedAt      @map("updated_at")
+  email          String?
+  phone          String?
+  landingPageUrl String?    @map("landing_page_url")
+  status         LeadStatus @default(NEW)
+  courseInterest String?    @map("course_interest")
+  source         String?
+  utmSource      String?    @map("utm_source")
+  utmMedium      String?    @map("utm_medium")
+  utmCampaign    String?    @map("utm_campaign")
+  utmContent     String?    @map("utm_content")
+  utmTerm        String?    @map("utm_term")
+  consentGiven   Boolean    @default(false) @map("consent_given")
+  metadata       Json?
+  candidateId    String?    @map("candidate_id")
+  createdAt      DateTime   @default(now()) @map("created_at")
+  updatedAt      DateTime   @updatedAt @map("updated_at")
 
-  campaign    Campaign?  @relation(fields: [campaignId], references: [id], onDelete: SetNull)
-  candidate   Candidate? @relation(fields: [candidateId], references: [id], onDelete: SetNull)
+  campaign     Campaign?     @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  candidate    Candidate?    @relation(fields: [candidateId], references: [id], onDelete: SetNull)
   funnelEvents FunnelEvent[]
 
   @@index([campaignId])
@@ -367,9 +367,9 @@ model FunnelEvent {
   metadata    Json?
   occurredAt  DateTime @default(now()) @map("occurred_at")
 
-  lead      Lead?      @relation(fields: [leadId],      references: [id], onDelete: SetNull)
+  lead      Lead?      @relation(fields: [leadId], references: [id], onDelete: SetNull)
   candidate Candidate? @relation(fields: [candidateId], references: [id], onDelete: SetNull)
-  campaign  Campaign?  @relation(fields: [campaignId],  references: [id], onDelete: SetNull)
+  campaign  Campaign?  @relation(fields: [campaignId], references: [id], onDelete: SetNull)
 
   @@index([eventType, occurredAt])
   @@index([leadId])
@@ -382,57 +382,57 @@ model FunnelEvent {
 // =============================================================================
 
 model Candidate {
-  id                String                   @id @default(uuid())
-  candidateCode     String                   @unique @map("candidate_code")
-  userId            String                   @unique @map("user_id")
-  fullName          String                   @map("full_name")
-  email             String                   @unique
-  phone             String                   @unique
-  classification    CandidateClassification?
-  education         String?
-  graduationYear    Int?                     @map("graduation_year")
-  experienceYears   Int                      @default(0) @map("experience_years")
-  skills            String[]
-  targetRole        String?                  @map("target_role")
-  codingPreference  String?                  @map("coding_preference")
-  resumeUrl         String?                  @map("resume_url")
-  previousTraining  String?                  @map("previous_training")
-  careerGapMonths   Int                      @default(0) @map("career_gap_months")
-  learningAvailability String?               @map("learning_availability")
-  preferredSchedule String?                  @map("preferred_schedule")
-  courseInterest    String?                  @map("course_interest")
-  campaignSource    String?                  @map("campaign_source")
-  utmSource         String?                  @map("utm_source")
-  utmMedium         String?                  @map("utm_medium")
-  utmCampaign       String?                  @map("utm_campaign")
-  utmContent        String?                  @map("utm_content")
-  utmTerm           String?                  @map("utm_term")
-  consentGiven      Boolean                  @default(false) @map("consent_given")
-  communicationPrefs String?                 @map("communication_prefs")
-  isActive          Boolean                  @default(true) @map("is_active")
-  createdAt         DateTime                 @default(now()) @map("created_at")
-  updatedAt         DateTime                 @updatedAt      @map("updated_at")
+  id                   String                   @id @default(uuid())
+  candidateCode        String                   @unique @map("candidate_code")
+  userId               String                   @unique @map("user_id")
+  fullName             String                   @map("full_name")
+  email                String                   @unique
+  phone                String                   @unique
+  classification       CandidateClassification?
+  education            String?
+  graduationYear       Int?                     @map("graduation_year")
+  experienceYears      Int                      @default(0) @map("experience_years")
+  skills               String[]
+  targetRole           String?                  @map("target_role")
+  codingPreference     String?                  @map("coding_preference")
+  resumeUrl            String?                  @map("resume_url")
+  previousTraining     String?                  @map("previous_training")
+  careerGapMonths      Int                      @default(0) @map("career_gap_months")
+  learningAvailability String?                  @map("learning_availability")
+  preferredSchedule    String?                  @map("preferred_schedule")
+  courseInterest       String?                  @map("course_interest")
+  campaignSource       String?                  @map("campaign_source")
+  utmSource            String?                  @map("utm_source")
+  utmMedium            String?                  @map("utm_medium")
+  utmCampaign          String?                  @map("utm_campaign")
+  utmContent           String?                  @map("utm_content")
+  utmTerm              String?                  @map("utm_term")
+  consentGiven         Boolean                  @default(false) @map("consent_given")
+  communicationPrefs   String?                  @map("communication_prefs")
+  isActive             Boolean                  @default(true) @map("is_active")
+  createdAt            DateTime                 @default(now()) @map("created_at")
+  updatedAt            DateTime                 @updatedAt @map("updated_at")
 
-  user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  leads              Lead[]
-  registrations      Registration[]
-  assessments        Assessment[]
-  enrollments        Enrollment[]
-  activities         Activity[]
-  assignmentSubs     AssignmentSubmission[]
-  projectSubs        ProjectSubmission[]
-  mockInterviews     MockInterview[]
-  resumes            Resume[]
-  readinessGates     ReadinessGate[]
-  supportTickets     SupportTicket[]
-  ticketComments     TicketComment[]     @relation("CandidateComments")
-  jobMatches         JobMatch[]
-  placementSubs      PlacementSubmission[]
-  placementRecovery  PlacementRecovery[]
-  trialProgress      TrialProgress[]
-  automationEvents   AutomationEvent[]
-  funnelEvents       FunnelEvent[]
-  payments           Payment[]
+  user              User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  leads             Lead[]
+  registrations     Registration[]
+  assessments       Assessment[]
+  enrollments       Enrollment[]
+  activities        Activity[]
+  assignmentSubs    AssignmentSubmission[]
+  projectSubs       ProjectSubmission[]
+  mockInterviews    MockInterview[]
+  resumes           Resume[]
+  readinessGates    ReadinessGate[]
+  supportTickets    SupportTicket[]
+  ticketComments    TicketComment[]        @relation("CandidateComments")
+  jobMatches        JobMatch[]
+  placementSubs     PlacementSubmission[]
+  placementRecovery PlacementRecovery[]
+  trialProgress     TrialProgress[]
+  automationEvents  AutomationEvent[]
+  funnelEvents      FunnelEvent[]
+  payments          Payment[]
 
   @@index([userId])
   @@index([email])
@@ -441,21 +441,21 @@ model Candidate {
 }
 
 model Registration {
-  id                 String    @id @default(uuid())
-  candidateId        String    @map("candidate_id")
-  campaignSourceId   String?   @map("campaign_source_id")
-  education          String?
-  graduationYear     Int?      @map("graduation_year")
-  experienceYears    Decimal?  @map("experience_years") @db.Decimal(4, 1)
-  currentSkills      String[]  @map("current_skills")
-  earlierTraining    String?   @map("earlier_training")
-  careerGapMonths    Int?      @map("career_gap_months")
-  targetRole         String?   @map("target_role")
-  codingPreference   String?   @map("coding_preference")
-  resumeUrl          String?   @map("resume_url")
-  learningAvailability String? @map("learning_availability")
-  chosenSchedule     String?   @map("chosen_schedule")
-  createdAt          DateTime  @default(now()) @map("created_at")
+  id                   String   @id @default(uuid())
+  candidateId          String   @map("candidate_id")
+  campaignSourceId     String?  @map("campaign_source_id")
+  education            String?
+  graduationYear       Int?     @map("graduation_year")
+  experienceYears      Decimal? @map("experience_years") @db.Decimal(4, 1)
+  currentSkills        String[] @map("current_skills")
+  earlierTraining      String?  @map("earlier_training")
+  careerGapMonths      Int?     @map("career_gap_months")
+  targetRole           String?  @map("target_role")
+  codingPreference     String?  @map("coding_preference")
+  resumeUrl            String?  @map("resume_url")
+  learningAvailability String?  @map("learning_availability")
+  chosenSchedule       String?  @map("chosen_schedule")
+  createdAt            DateTime @default(now()) @map("created_at")
 
   candidate Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
   campaign  Campaign? @relation(fields: [campaignSourceId], references: [id], onDelete: SetNull)
@@ -487,16 +487,16 @@ model Product {
 
 /// Versioned pricing — allows price changes without schema migrations
 model PriceList {
-  id         String    @id @default(uuid())
-  productId  String    @map("product_id")
-  amount     Decimal   @db.Decimal(10, 2)
-  currency   String    @default("INR")
-  validFrom  DateTime  @default(now()) @map("valid_from")
-  validUntil DateTime? @map("valid_until")  // NULL = currently active
-  createdById String?  @map("created_by_id")
-  createdAt  DateTime  @default(now()) @map("created_at")
+  id          String    @id @default(uuid())
+  productId   String    @map("product_id")
+  amount      Decimal   @db.Decimal(10, 2)
+  currency    String    @default("INR")
+  validFrom   DateTime  @default(now()) @map("valid_from")
+  validUntil  DateTime? @map("valid_until") // NULL = currently active
+  createdById String?   @map("created_by_id")
+  createdAt   DateTime  @default(now()) @map("created_at")
 
-  product   Product @relation(fields: [productId],   references: [id])
+  product   Product @relation(fields: [productId], references: [id])
   createdBy User?   @relation(fields: [createdById], references: [id], onDelete: SetNull)
 
   @@index([productId, validFrom(sort: Desc)])
@@ -518,7 +518,7 @@ model Payment {
   status            PaymentStatus @default(CREATED)
   invoiceNumber     String?       @unique @map("invoice_number")
   createdAt         DateTime      @default(now()) @map("created_at")
-  updatedAt         DateTime      @updatedAt      @map("updated_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
   paidAt            DateTime?     @map("paid_at")
 
   candidate     Candidate      @relation(fields: [candidateId], references: [id], onDelete: Cascade)
@@ -544,11 +544,11 @@ model PaymentItem {
 
 /// Webhook event log — raw payload stored; signature verified on receipt and NOT stored
 model PaymentEvent {
-  id             String   @id @default(uuid())
-  paymentId      String?  @map("payment_id")
-  eventType      String   @map("event_type")
-  razorpayEvent  Json?    @map("razorpay_event")
-  processedAt    DateTime @default(now()) @map("processed_at")
+  id            String   @id @default(uuid())
+  paymentId     String?  @map("payment_id")
+  eventType     String   @map("event_type")
+  razorpayEvent Json?    @map("razorpay_event")
+  processedAt   DateTime @default(now()) @map("processed_at")
 
   payment Payment? @relation(fields: [paymentId], references: [id], onDelete: Cascade)
 
@@ -567,10 +567,10 @@ model Batch {
   trainerId String?     @map("trainer_id")
   capacity  Int         @default(15)
   startDate DateTime?   @map("start_date") @db.Date
-  endDate   DateTime?   @map("end_date")   @db.Date
+  endDate   DateTime?   @map("end_date") @db.Date
   status    BatchStatus @default(PLANNED)
-  createdAt DateTime    @default(now())    @map("created_at")
-  updatedAt DateTime    @updatedAt         @map("updated_at")
+  createdAt DateTime    @default(now()) @map("created_at")
+  updatedAt DateTime    @updatedAt @map("updated_at")
 
   product     Product      @relation(fields: [productId], references: [id])
   trainer     User?        @relation("BatchTrainer", fields: [trainerId], references: [id], onDelete: SetNull)
@@ -589,12 +589,12 @@ model Enrollment {
   supportOwnerId String?          @map("support_owner_id")
   status         EnrollmentStatus @default(ACTIVE)
   enrolledAt     DateTime         @default(now()) @map("enrolled_at")
-  updatedAt      DateTime         @updatedAt      @map("updated_at")
+  updatedAt      DateTime         @updatedAt @map("updated_at")
 
-  candidate    Candidate @relation(fields: [candidateId],    references: [id], onDelete: Cascade)
-  product      Product   @relation(fields: [productId],      references: [id])
-  payment      Payment?  @relation(fields: [paymentId],      references: [id])
-  batch        Batch?    @relation(fields: [batchId],        references: [id], onDelete: SetNull)
+  candidate    Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  product      Product   @relation(fields: [productId], references: [id])
+  payment      Payment?  @relation(fields: [paymentId], references: [id])
+  batch        Batch?    @relation(fields: [batchId], references: [id], onDelete: SetNull)
   supportOwner User?     @relation("EnrollmentSupportOwner", fields: [supportOwnerId], references: [id], onDelete: SetNull)
 
   @@unique([candidateId, productId])
@@ -605,13 +605,13 @@ model Enrollment {
 
 /// Pre-purchase 3-session GenAI trial
 model TrialProgress {
-  id           String             @id @default(uuid())
-  candidateId  String             @map("candidate_id")
-  sessionNumber Int               @map("session_number")
-  status       TrialSessionStatus @default(SCHEDULED)
-  labCompleted Boolean            @default(false) @map("lab_completed")
-  scheduledAt  DateTime?          @map("scheduled_at")
-  completedAt  DateTime?          @map("completed_at")
+  id            String             @id @default(uuid())
+  candidateId   String             @map("candidate_id")
+  sessionNumber Int                @map("session_number")
+  status        TrialSessionStatus @default(SCHEDULED)
+  labCompleted  Boolean            @default(false) @map("lab_completed")
+  scheduledAt   DateTime?          @map("scheduled_at")
+  completedAt   DateTime?          @map("completed_at")
 
   candidate Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
 
@@ -624,7 +624,7 @@ model AutomationEvent {
   candidateId String            @map("candidate_id")
   triggerType AutomationTrigger @map("trigger_type")
   channel     AutomationChannel
-  status      String            @default("sent")  // sent | failed | skipped
+  status      String            @default("sent") // sent | failed | skipped
   payload     Json?
   sentAt      DateTime          @default(now()) @map("sent_at")
 
@@ -644,7 +644,7 @@ model Course {
   title       String
   description String?
 
-  product  Product    @relation(fields: [productId], references: [id])
+  product  Product   @relation(fields: [productId], references: [id])
   modules  Module[]
   projects Project[]
 
@@ -652,12 +652,12 @@ model Course {
 }
 
 model Module {
-  id          String  @id @default(uuid())
-  courseId    String  @map("course_id")
-  title       String
-  orderIndex  Int     @map("order_index")
+  id         String @id @default(uuid())
+  courseId   String @map("course_id")
+  title      String
+  orderIndex Int    @map("order_index")
   // e.g. { "requires_module_id": "...", "min_score": 70 }
-  unlockRule  Json?   @map("unlock_rule")
+  unlockRule Json?  @map("unlock_rule")
 
   course      Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
   lessons     Lesson[]
@@ -673,7 +673,7 @@ model Lesson {
   title        String
   type         LessonType
   orderIndex   Int        @map("order_index")
-  videoAssetId String?    @map("video_asset_id")  // Mux / Cloudflare Stream
+  videoAssetId String?    @map("video_asset_id") // Mux / Cloudflare Stream
   content      String?
 
   module      Module       @relation(fields: [moduleId], references: [id], onDelete: Cascade)
@@ -693,7 +693,7 @@ model Activity {
   completedAt DateTime?      @map("completed_at")
 
   candidate Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
-  lesson    Lesson    @relation(fields: [lessonId],    references: [id], onDelete: Cascade)
+  lesson    Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
 
   @@unique([candidateId, lessonId])
   @@index([candidateId])
@@ -701,30 +701,30 @@ model Activity {
 }
 
 model Assignment {
-  id              String  @id @default(uuid())
-  lessonId        String? @map("lesson_id")
-  title           String
-  instructions    String?
-  dueDateOffsetDays Int?  @map("due_date_offset_days")
+  id                String  @id @default(uuid())
+  lessonId          String? @map("lesson_id")
+  title             String
+  instructions      String?
+  dueDateOffsetDays Int?    @map("due_date_offset_days")
 
-  lesson      Lesson?               @relation(fields: [lessonId], references: [id], onDelete: SetNull)
+  lesson      Lesson?                @relation(fields: [lessonId], references: [id], onDelete: SetNull)
   submissions AssignmentSubmission[]
 
   @@map("assignments")
 }
 
 model AssignmentSubmission {
-  id           String           @id @default(uuid())
-  assignmentId String           @map("assignment_id")
-  candidateId  String           @map("candidate_id")
-  submissionUrl String?         @map("submission_url")
-  status       SubmissionStatus @default(SUBMITTED)
-  score        Decimal?         @db.Decimal(5, 2)
-  submittedAt  DateTime         @default(now()) @map("submitted_at")
-  reviewedAt   DateTime?        @map("reviewed_at")
+  id            String           @id @default(uuid())
+  assignmentId  String           @map("assignment_id")
+  candidateId   String           @map("candidate_id")
+  submissionUrl String?          @map("submission_url")
+  status        SubmissionStatus @default(SUBMITTED)
+  score         Decimal?         @db.Decimal(5, 2)
+  submittedAt   DateTime         @default(now()) @map("submitted_at")
+  reviewedAt    DateTime?        @map("reviewed_at")
 
   assignment Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
-  candidate  Candidate  @relation(fields: [candidateId],  references: [id], onDelete: Cascade)
+  candidate  Candidate  @relation(fields: [candidateId], references: [id], onDelete: Cascade)
 
   @@index([candidateId])
   @@map("assignment_submissions")
@@ -749,20 +749,20 @@ model Project {
 }
 
 model ProjectSubmission {
-  id                   String           @id @default(uuid())
-  projectId            String           @map("project_id")
-  candidateId          String           @map("candidate_id")
-  submissionUrl        String?          @map("submission_url")
-  aiReviewFeedback     String?          @map("ai_review_feedback")
-  aiReviewScore        Decimal?         @map("ai_review_score") @db.Decimal(5, 2)
-  mentorId             String?          @map("mentor_id")
-  mentorFeedback       String?          @map("mentor_feedback")
-  status               SubmissionStatus @default(SUBMITTED)
-  finalPresentationAt  DateTime?        @map("final_presentation_at")
-  submittedAt          DateTime         @default(now()) @map("submitted_at")
-  reviewedAt           DateTime?        @map("reviewed_at")
+  id                  String           @id @default(uuid())
+  projectId           String           @map("project_id")
+  candidateId         String           @map("candidate_id")
+  submissionUrl       String?          @map("submission_url")
+  aiReviewFeedback    String?          @map("ai_review_feedback")
+  aiReviewScore       Decimal?         @map("ai_review_score") @db.Decimal(5, 2)
+  mentorId            String?          @map("mentor_id")
+  mentorFeedback      String?          @map("mentor_feedback")
+  status              SubmissionStatus @default(SUBMITTED)
+  finalPresentationAt DateTime?        @map("final_presentation_at")
+  submittedAt         DateTime         @default(now()) @map("submitted_at")
+  reviewedAt          DateTime?        @map("reviewed_at")
 
-  project   Project   @relation(fields: [projectId],   references: [id], onDelete: Cascade)
+  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
   candidate Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
   mentor    User?     @relation("ProjectMentor", fields: [mentorId], references: [id], onDelete: SetNull)
 
@@ -792,9 +792,9 @@ model Assessment {
   startedAt       DateTime?      @map("started_at")
   completedAt     DateTime?      @map("completed_at")
   createdAt       DateTime       @default(now()) @map("created_at")
-  updatedAt       DateTime       @updatedAt      @map("updated_at")
+  updatedAt       DateTime       @updatedAt @map("updated_at")
 
-  candidate     Candidate @relation(fields: [candidateId],     references: [id], onDelete: Cascade)
+  candidate     Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
   createdByUser User?     @relation("AssessmentCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
   module        Module?   @relation(fields: [relatedModuleId], references: [id], onDelete: SetNull)
 
@@ -807,18 +807,18 @@ model Assessment {
 // =============================================================================
 
 model MockInterview {
-  id           String   @id @default(uuid())
-  candidateId  String   @map("candidate_id")
-  type         MockType
-  mockNumber   Int?     @map("mock_number")     // 1,2,3 for expert; null for AI
-  interviewerId String? @map("interviewer_id")
-  isFinalMock  Boolean  @default(false) @map("is_final_mock")
-  score        Decimal? @db.Decimal(5, 2)
-  feedback     String?
-  conductedAt  DateTime @default(now()) @map("conducted_at")
+  id            String   @id @default(uuid())
+  candidateId   String   @map("candidate_id")
+  type          MockType
+  mockNumber    Int?     @map("mock_number") // 1,2,3 for expert; null for AI
+  interviewerId String?  @map("interviewer_id")
+  isFinalMock   Boolean  @default(false) @map("is_final_mock")
+  score         Decimal? @db.Decimal(5, 2)
+  feedback      String?
+  conductedAt   DateTime @default(now()) @map("conducted_at")
 
-  candidate     Candidate        @relation(fields: [candidateId],  references: [id], onDelete: Cascade)
-  interviewer   User?            @relation("MockInterviewer", fields: [interviewerId], references: [id], onDelete: SetNull)
+  candidate         Candidate           @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  interviewer       User?               @relation("MockInterviewer", fields: [interviewerId], references: [id], onDelete: SetNull)
   placementRecovery PlacementRecovery[]
 
   @@index([candidateId])
@@ -826,15 +826,15 @@ model MockInterview {
 }
 
 model Resume {
-  id          String   @id @default(uuid())
-  candidateId String   @map("candidate_id")
-  fileUrl     String   @map("file_url")
-  version     Int      @default(1)
-  atsScore    Decimal? @map("ats_score") @db.Decimal(5, 2)
-  reviewedById String? @map("reviewed_by_id")
-  createdAt   DateTime @default(now()) @map("created_at")
+  id           String   @id @default(uuid())
+  candidateId  String   @map("candidate_id")
+  fileUrl      String   @map("file_url")
+  version      Int      @default(1)
+  atsScore     Decimal? @map("ats_score") @db.Decimal(5, 2)
+  reviewedById String?  @map("reviewed_by_id")
+  createdAt    DateTime @default(now()) @map("created_at")
 
-  candidate  Candidate @relation(fields: [candidateId],  references: [id], onDelete: Cascade)
+  candidate  Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
   reviewedBy User?     @relation("ResumeReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
 
   @@index([candidateId])
@@ -848,7 +848,7 @@ model ReadinessGate {
   candidateId      String     @map("candidate_id")
   projectsComplete Boolean    @default(false) @map("projects_complete")
   mocksComplete    Boolean    @default(false) @map("mocks_complete")
-  formalScore      Decimal?   @map("formal_score")  @db.Decimal(4, 2)
+  formalScore      Decimal?   @map("formal_score") @db.Decimal(4, 2)
   finalMockScore   Decimal?   @map("final_mock_score") @db.Decimal(4, 2)
   status           GateStatus @default(PENDING)
   evaluatedAt      DateTime   @default(now()) @map("evaluated_at")
@@ -864,19 +864,19 @@ model ReadinessGate {
 // =============================================================================
 
 model SupportTicket {
-  id          String         @id @default(uuid())
-  candidateId String         @map("candidate_id")
-  category    TicketCategory
-  subject     String
-  description String?
-  status      TicketStatus   @default(OPEN)
-  assignedToId String?       @map("assigned_to_id")
-  slaDueAt    DateTime?      @map("sla_due_at")
-  createdAt   DateTime       @default(now()) @map("created_at")
-  updatedAt   DateTime       @updatedAt      @map("updated_at")
-  resolvedAt  DateTime?      @map("resolved_at")
+  id           String         @id @default(uuid())
+  candidateId  String         @map("candidate_id")
+  category     TicketCategory
+  subject      String
+  description  String?
+  status       TicketStatus   @default(OPEN)
+  assignedToId String?        @map("assigned_to_id")
+  slaDueAt     DateTime?      @map("sla_due_at")
+  createdAt    DateTime       @default(now()) @map("created_at")
+  updatedAt    DateTime       @updatedAt @map("updated_at")
+  resolvedAt   DateTime?      @map("resolved_at")
 
-  candidate  Candidate       @relation(fields: [candidateId],  references: [id], onDelete: Cascade)
+  candidate  Candidate       @relation(fields: [candidateId], references: [id], onDelete: Cascade)
   assignedTo User?           @relation("TicketAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
   comments   TicketComment[]
 
@@ -887,15 +887,15 @@ model SupportTicket {
 
 /// Either authorUserId OR authorCandidateId must be set — never both, never neither
 model TicketComment {
-  id                 String   @id @default(uuid())
-  ticketId           String   @map("ticket_id")
-  authorUserId       String?  @map("author_user_id")
-  authorCandidateId  String?  @map("author_candidate_id")
-  message            String
-  createdAt          DateTime @default(now()) @map("created_at")
+  id                String   @id @default(uuid())
+  ticketId          String   @map("ticket_id")
+  authorUserId      String?  @map("author_user_id")
+  authorCandidateId String?  @map("author_candidate_id")
+  message           String
+  createdAt         DateTime @default(now()) @map("created_at")
 
-  ticket          SupportTicket @relation(fields: [ticketId],          references: [id], onDelete: Cascade)
-  authorUser      User?         @relation("StaffComments",     fields: [authorUserId],      references: [id], onDelete: SetNull)
+  ticket          SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  authorUser      User?         @relation("StaffComments", fields: [authorUserId], references: [id], onDelete: SetNull)
   authorCandidate Candidate?    @relation("CandidateComments", fields: [authorCandidateId], references: [id], onDelete: SetNull)
 
   @@index([ticketId])
@@ -916,8 +916,8 @@ model JobPosting {
   createdById    String?  @map("created_by_id")
   createdAt      DateTime @default(now()) @map("created_at")
 
-  createdBy User?      @relation(fields: [createdById], references: [id], onDelete: SetNull)
-  matches   JobMatch[]
+  createdBy   User?                 @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  matches     JobMatch[]
   submissions PlacementSubmission[]
 
   @@map("job_postings")
@@ -931,7 +931,7 @@ model JobMatch {
   matchEvidence Json?    @map("match_evidence")
   createdAt     DateTime @default(now()) @map("created_at")
 
-  candidate  Candidate  @relation(fields: [candidateId],  references: [id], onDelete: Cascade)
+  candidate  Candidate  @relation(fields: [candidateId], references: [id], onDelete: Cascade)
   jobPosting JobPosting @relation(fields: [jobPostingId], references: [id], onDelete: Cascade)
 
   @@unique([candidateId, jobPostingId])
@@ -939,20 +939,20 @@ model JobMatch {
 }
 
 model PlacementSubmission {
-  id           String            @id @default(uuid())
-  candidateId  String            @map("candidate_id")
-  jobPostingId String?           @map("job_posting_id")
-  stage        PipelineStage     @default(PROFILE_REVIEW)
-  channel      SubmissionChannel?
-  blocker      String?
-  nextAction   String?           @map("next_action")
-  rejectionReason String?        @map("rejection_reason")
-  createdAt    DateTime          @default(now()) @map("created_at")
-  updatedAt    DateTime          @updatedAt      @map("updated_at")
+  id              String             @id @default(uuid())
+  candidateId     String             @map("candidate_id")
+  jobPostingId    String?            @map("job_posting_id")
+  stage           PipelineStage      @default(PROFILE_REVIEW)
+  channel         SubmissionChannel?
+  blocker         String?
+  nextAction      String?            @map("next_action")
+  rejectionReason String?            @map("rejection_reason")
+  createdAt       DateTime           @default(now()) @map("created_at")
+  updatedAt       DateTime           @updatedAt @map("updated_at")
 
-  candidate        Candidate        @relation(fields: [candidateId],  references: [id], onDelete: Cascade)
-  jobPosting       JobPosting?      @relation(fields: [jobPostingId], references: [id], onDelete: SetNull)
-  interviewRounds  InterviewRound[]
+  candidate       Candidate        @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  jobPosting      JobPosting?      @relation(fields: [jobPostingId], references: [id], onDelete: SetNull)
+  interviewRounds InterviewRound[]
 
   @@index([candidateId])
   @@index([stage])
@@ -960,9 +960,9 @@ model PlacementSubmission {
 }
 
 model InterviewRound {
-  id           String   @id @default(uuid())
-  submissionId String   @map("submission_id")
-  roundNumber  Int      @map("round_number")
+  id           String    @id @default(uuid())
+  submissionId String    @map("submission_id")
+  roundNumber  Int       @map("round_number")
   scheduledAt  DateTime? @map("scheduled_at")
   // pending | cleared | rejected
   outcome      String?
@@ -976,20 +976,20 @@ model InterviewRound {
 
 /// Four-interview recovery rule tracking
 model PlacementRecovery {
-  id              String         @id @default(uuid())
-  candidateId     String         @map("candidate_id")
-  rejectionCount  Int            @default(0) @map("rejection_count")
-  pausedAt        DateTime?      @map("paused_at")
-  brushupStart    DateTime?      @map("brushup_start") @db.Date
-  brushupEnd      DateTime?      @map("brushup_end")   @db.Date
-  repeatMockId    String?        @map("repeat_mock_id")
-  resumedAt       DateTime?      @map("resumed_at")
-  status          RecoveryStatus @default(ACTIVE)
-  createdAt       DateTime       @default(now()) @map("created_at")
-  updatedAt       DateTime       @updatedAt      @map("updated_at")
+  id             String         @id @default(uuid())
+  candidateId    String         @map("candidate_id")
+  rejectionCount Int            @default(0) @map("rejection_count")
+  pausedAt       DateTime?      @map("paused_at")
+  brushupStart   DateTime?      @map("brushup_start") @db.Date
+  brushupEnd     DateTime?      @map("brushup_end") @db.Date
+  repeatMockId   String?        @map("repeat_mock_id")
+  resumedAt      DateTime?      @map("resumed_at")
+  status         RecoveryStatus @default(ACTIVE)
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
 
-  candidate   Candidate     @relation(fields: [candidateId],  references: [id], onDelete: Cascade)
-  repeatMock  MockInterview? @relation(fields: [repeatMockId], references: [id], onDelete: SetNull)
+  candidate  Candidate      @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  repeatMock MockInterview? @relation(fields: [repeatMockId], references: [id], onDelete: SetNull)
 
   @@index([candidateId])
   @@map("placement_recovery")

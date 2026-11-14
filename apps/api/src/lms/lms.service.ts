@@ -150,18 +150,20 @@ export class LmsService {
       if (!enrollment) throw new ForbiddenException('Not enrolled in this course.');
     }
 
-    // Find existing submission and update or create
-    const existing = await this.prisma.assignmentSubmission.findFirst({
-      where: { assignmentId, candidateId },
-    });
-    if (existing) {
-      return this.prisma.assignmentSubmission.update({
-        where: { id: existing.id },
-        data: { submissionUrl: dto.submissionUrl, status: SubmissionStatus.SUBMITTED, reviewedAt: null },
-      });
-    }
-    return this.prisma.assignmentSubmission.create({
-      data: { assignmentId, candidateId, submissionUrl: dto.submissionUrl, status: SubmissionStatus.SUBMITTED },
+    // Atomic upsert — eliminates findFirst→create race condition
+    return this.prisma.assignmentSubmission.upsert({
+      where: { assignmentId_candidateId: { assignmentId, candidateId } },
+      update: {
+        submissionUrl: dto.submissionUrl,
+        status: SubmissionStatus.SUBMITTED,
+        reviewedAt: null,
+      },
+      create: {
+        assignmentId,
+        candidateId,
+        submissionUrl: dto.submissionUrl,
+        status: SubmissionStatus.SUBMITTED,
+      },
     });
   }
 
